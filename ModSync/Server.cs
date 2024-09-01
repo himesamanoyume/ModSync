@@ -36,6 +36,8 @@ public class Server(Version pluginVersion)
             try
             {
                 using var client = new HttpClient();
+                if (retryCount > 0)
+                    client.Timeout = TimeSpan.FromMinutes(10);
                 using var responseStream = await client.GetStreamAsync($"{RequestHandler.Host}/modsync/fetch/{file}");
                 using var fileStream = new FileStream(downloadPath, FileMode.Create);
 
