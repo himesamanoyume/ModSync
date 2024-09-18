@@ -9,7 +9,7 @@ rm("-rf", "../dist");
 mkdir("-p", "../dist/user/mods/Corter-ModSync/src");
 mkdir("-p", "../dist/BepInEx/plugins");
 cp("package.json", "../dist/user/mods/Corter-ModSync/");
-cp("src/*", "../dist/user/mods/Corter-ModSync/src");
+cp("-r", "src/*", "../dist/user/mods/Corter-ModSync/src");
 
 pushd("-q", "../");
 exec(`dotnet build -c ${configuration}`);

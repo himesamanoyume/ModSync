@@ -2,8 +2,8 @@
 import type { PreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { JsonUtil } from "@spt/utils/JsonUtil";
 import type { VFS } from "@spt/utils/VFS";
-import { glob, globNoEnd } from "./glob";
-import { unixPath } from "./utility";
+import { glob, globNoEnd } from "./utility/glob";
+import { unixPath } from "./utility/misc";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 
 export type SyncPath = {

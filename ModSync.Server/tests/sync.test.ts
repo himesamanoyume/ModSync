@@ -1,8 +1,8 @@
 ﻿import { expect, describe, it, vi, beforeEach } from "vitest";
 import { fs, vol } from "memfs";
 
-import { SyncUtil } from "../sync";
-import { Config } from "../config";
+import { SyncUtil } from "../src/sync";
+import { Config } from "../src/config";
 import { VFS } from "./utils/vfs";
 import type { VFS as IVFS } from "@spt/utils/VFS";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";

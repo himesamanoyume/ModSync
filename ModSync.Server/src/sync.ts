@@ -1,8 +1,9 @@
 ﻿import type { VFS } from "@spt/utils/VFS";
 import path from "node:path";
-import { crc32Init, crc32Update, crc32Final } from "./crc";
+import { crc32Init, crc32Update, crc32Final } from "./utility/crc";
 import type { Config, SyncPath } from "./config";
-import {HttpError, Semaphore, winPath} from "./utility";
+import { HttpError, winPath } from "./utility/misc";
+import { Semaphore } from "./utility/semaphore";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import { createReadStream } from "node:fs";
 
@@ -13,7 +14,7 @@ type ModFile = {
 
 export class SyncUtil {
 	private limiter = new Semaphore(1024);
-	
+
 	constructor(
 		private vfs: VFS,
 		private config: Config,
@@ -88,12 +89,16 @@ export class SyncUtil {
 			let crc = 0;
 			if (!nosync) {
 				const lock = await this.limiter.acquire();
-				
 				crc = await new Promise<number>((resolve, reject) => {
 					let crc = crc32Init();
 
 					createReadStream(file)
-						.on("error", reject)
+						.on("error", (e) => {
+							this.logger.error(
+								`Corter-ModSync: Failed to hash '${file}'!` + e,
+							);
+							reject(e);
+						})
 						.on("data", (data: Buffer) => {
 							crc = crc32Update(crc, data);
 						})
@@ -101,10 +106,10 @@ export class SyncUtil {
 							resolve(crc32Final(crc));
 						});
 				});
-				
+
 				lock.release();
 			}
-			
+
 			return {
 				nosync,
 				crc,

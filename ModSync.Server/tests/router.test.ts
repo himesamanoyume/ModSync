@@ -1,9 +1,9 @@
 ﻿import { expect, beforeEach, describe, it, vi } from "vitest";
 import { fs, vol } from "memfs";
 
-import { Router } from "../router";
-import { Config } from "../config";
-import { SyncUtil } from "../sync";
+import { Router } from "../src/router";
+import { Config } from "../src/config";
+import { SyncUtil } from "../src/sync";
 import { VFS } from "./utils/vfs";
 import type { VFS as IVFS } from "@spt/utils/VFS";
 import type { HttpFileUtil } from "@spt/utils/HttpFileUtil";
@@ -12,7 +12,7 @@ import { PreSptModLoader } from "./utils/preSptModLoader";
 import type { PreSptModLoader as IPreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { HttpError } from "../utility";
+import { HttpError } from "../src/utility/misc";
 import type { HttpServerHelper } from "@spt/helpers/HttpServerHelper";
 
 vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
@@ -97,14 +97,14 @@ describe("router", () => {
 
 			expect(res.end.mock.calls).toMatchSnapshot();
 		});
-		
+
 		it("should serve 'rescue' mode paths when no version specified", async () => {
 			req.headers["modsync-version"] = undefined;
-			
+
 			await router.getSyncPaths(req, res, mock<RegExpMatchArray>());
-			
+
 			expect(res.end.mock.calls).toMatchSnapshot();
-		})
+		});
 	});
 
 	describe("getHashes", () => {
@@ -149,14 +149,14 @@ describe("router", () => {
 
 			expect(res.end.mock.calls).toMatchSnapshot();
 		});
-		
+
 		it("should serve 'rescue' mode hashes when no version specified", async () => {
 			req.headers["modsync-version"] = undefined;
-			
+
 			await router.getHashes(req, res, mock<RegExpMatchArray>());
-			
+
 			expect(res.end.mock.calls).toMatchSnapshot();
-		})
+		});
 	});
 
 	describe("fetchModFile", () => {

@@ -1,11 +1,11 @@
 ﻿import type { HttpFileUtil } from "@spt/utils/HttpFileUtil";
 import type { SyncUtil } from "./sync";
-import { glob } from "./glob";
+import { glob } from "./utility/glob";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import type { VFS } from "@spt/utils/VFS";
 import type { Config } from "./config";
-import { HttpError, winPath } from "./utility";
+import { HttpError, winPath } from "./utility/misc";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import type { PreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { HttpServerHelper } from "@spt/helpers/HttpServerHelper";
@@ -99,11 +99,11 @@ export class Router {
 			return;
 		}
 
+		const hashes = await this.syncUtil.hashModFiles(this.config.syncPaths);
+
 		res.setHeader("Content-Type", "application/json");
 		res.writeHead(200, "OK");
-		res.end(
-			JSON.stringify(await this.syncUtil.hashModFiles(this.config.syncPaths)),
-		);
+		res.end(JSON.stringify(hashes));
 	}
 
 	/**
@@ -129,6 +129,7 @@ export class Router {
 
 		try {
 			const fileStats = await this.vfs.statPromisify(sanitizedPath);
+			res.setHeader("Accept-Ranges", "bytes");
 			res.setHeader(
 				"Content-Type",
 				this.httpServerHelper.getMimeText(path.extname(filePath)) ||

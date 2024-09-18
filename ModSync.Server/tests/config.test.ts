@@ -1,6 +1,6 @@
 ﻿import { expect, beforeEach, describe, it, vi } from "vitest";
 
-import { Config, ConfigUtil } from "../config";
+import { Config, ConfigUtil } from "../src/config";
 import { VFS } from "./utils/vfs";
 import { JsonUtil } from "./utils/jsonUtil";
 import { PreSptModLoader } from "./utils/preSptModLoader";

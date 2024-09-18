@@ -14,10 +14,19 @@ public class Server(Version pluginVersion)
 {
     private async Task<string> GetJson(string path)
     {
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Add("modsync-version", pluginVersion.ToString());
-        var json = await client.GetStringAsync($"{RequestHandler.Host}{path}");
-        return json;
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("modsync-version", pluginVersion.ToString());
+            client.Timeout = TimeSpan.FromMinutes(5);
+            var json = await client.GetStringAsync($"{RequestHandler.Host}{path}");
+            return json;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError($"There was an error performing request.\n{e.Message}\n{e.StackTrace}");
+            throw;
+        }
     }
 
     public async Task DownloadFile(string file, string downloadDir, SemaphoreSlim limiter, CancellationToken cancellationToken)
