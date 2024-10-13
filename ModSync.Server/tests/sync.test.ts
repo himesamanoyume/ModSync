@@ -10,197 +10,278 @@ import { mock } from "vitest-mock-extended";
 
 vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
 
-const directoryStructure = {
-	plugins: {
-		"file1.dll": "Test content",
-		"file2.dll": "Test content 2",
-		"file2.dll.nosync": "",
-		"file3.dll": "Test content 3",
-		"file3.dll.nosync.txt": "",
-		ModName: {
-			"mod_name.dll": "Test content 4",
-			".nosync": "",
-		},
-		OtherMod: {
-			"other_mod.dll": "Test content 5",
-			subdir: {
-				"image.png": "Test Image",
+describe("syncTests", async () => {
+	const directoryStructure = {
+		plugins: {
+			"file1.dll": "Test content",
+			"file2.dll": "Test content 2",
+			"file2.dll.nosync": "",
+			"file3.dll": "Test content 3",
+			"file3.dll.nosync.txt": "",
+			ModName: {
+				IncludedSubdir: {
+					"aFileToInclude": "Something",	
+				},
+				"mod_name.dll": "Test content 4",
 				".nosync": "",
 			},
-		},
-	},
-	user: {
-		mods: {
-			testMod: {
-				"test.ts": "Test content 6",
-				"test.js": "Test content 6",
-				"test.js.map": "Test content 7",
+			OtherMod: {
+				"other_mod.dll": "Test content 5",
+				sounds: {},
+				subdir: {
+					"image.png": "Test Image",
+					".nosync": "",
+				},
 			},
 		},
-	},
-};
-
-const config = new Config(
-	[
-		{
-			path: "plugins",
-			enabled: true,
-			enforced: false,
-			silent: false,
-			restartRequired: true,
+		user: {
+			mods: {
+				testMod: {
+					"test.ts": "Test content 6",
+					"test.js": "Test content 6",
+					"test.js.map": "Test content 7",
+				},
+			},
 		},
-	],
-	[],
-);
+	};
 
-const vfs = new VFS();
-const logger = mock<ILogger>();
-const syncUtil = new SyncUtil(vfs as IVFS, config, logger);
+	const config = new Config(
+		[
+			{
+				path: "plugins",
+				enabled: true,
+				enforced: false,
+				silent: false,
+				restartRequired: true,
+			},
+		],
+		[
+			"**/*.nosync",
+			"**/*.nosync.txt",
+			"plugins/file2.dll",
+			"plugins/file3.dll",
+			"plugins/ModName",
+			"plugins/OtherMod/subdir",
+			"user/mods/**/*.js",
+			"user/mods/**/*.js.map",
+		],
+	);
 
-beforeEach(() => {
-	vol.reset();
-	vol.fromNestedJSON(directoryStructure);
-});
+	const vfs = new VFS();
+	const logger = mock<ILogger>();
+	const syncUtil = new SyncUtil(vfs as IVFS, config, logger);
 
-describe("hashModFiles", () => {
-	it("should hash mod files", async () => {
-		const hashes = await syncUtil.hashModFiles(config.syncPaths);
-
-		expect(
-			Object.keys(hashes).some(
-				(file) => file.endsWith(".nosync") || file.endsWith(".nosync.txt"),
-			),
-		).toBe(false);
-
-		expect("plugins\\OtherMod\\other_mod.dll" in hashes["plugins"]).toBe(true);
-
-		expect(hashes).toMatchSnapshot();
+	beforeEach(() => {
+		vol.reset();
+		vol.fromNestedJSON(directoryStructure);
 	});
 
-	it("should correctly hash multiple folders", async () => {
-		const config = new Config(
-			[
+	describe("hashModFiles", () => {
+		it("should hash mod files", async () => {
+			const hashes = await syncUtil.hashModFiles(config.syncPaths);
+
+			expect("plugins\\OtherMod\\other_mod.dll" in hashes["plugins"]).toBe(
+				true,
+			);
+
+			expect(hashes).toMatchSnapshot();
+		});
+
+		it("should correctly hash multiple folders", async () => {
+			const newConfig = new Config(
+				[
+					{
+						path: "plugins",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+					},
+					{
+						path: "user/mods",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: false,
+					},
+				],
+				config.exclusions,
+			);
+
+			const vfs = new VFS();
+			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
+
+			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+
+			expect(hashes).toMatchSnapshot();
+		});
+
+		it("should correctly ignore folders that do not exist", async () => {
+			const newConfig = new Config(
+				[
+					{
+						path: "plugins",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+					},
+					{
+						path: "user/bananas",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: false,
+					},
+				],
+				config.exclusions,
+			);
+
+			const vfs = new VFS();
+			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
+
+			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+
+			expect(Object.keys(hashes["plugins"])).toContain("plugins\\file1.dll");
+			expect(Object.keys(hashes["plugins"])).toContain(
+				"plugins\\OtherMod\\other_mod.dll",
+			);
+			expect(logger.warning).toHaveBeenCalledWith(
+				"Corter-ModSync: Directory 'user/bananas' does not exist, will be ignored.",
+			);
+		});
+
+		it("should correctly hash folders that didn't exist initially but are created", async () => {
+			const newConfig = new Config(
+				[
+					{
+						path: "plugins",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+					},
+					{
+						path: "user/bananas",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: false,
+					},
+				],
+				config.exclusions,
+			);
+
+			const vfs = new VFS();
+			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
+
+			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+
+			expect(Object.keys(hashes["plugins"])).toContain("plugins\\file1.dll");
+			expect(Object.keys(hashes["plugins"])).toContain(
+				"plugins\\OtherMod\\other_mod.dll",
+			);
+
+			expect(logger.warning).toHaveBeenCalledWith(
+				"Corter-ModSync: Directory 'user/bananas' does not exist, will be ignored.",
+			);
+
+			fs.mkdirSync("user/bananas", { recursive: true });
+			fs.writeFileSync("user/bananas/test.txt", "test");
+
+			const newHashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+
+			expect(newHashes).toMatchSnapshot();
+		});
+
+		it("should correctly include empty folders", async () => {
+			const hashes = await syncUtil.hashModFiles(config.syncPaths);
+
+			expect("plugins\\OtherMod\\sounds" in hashes["plugins"]).toBe(true);
+
+			expect(hashes).toMatchSnapshot();
+		});
+
+		it("Should correctly hash a single file", async () => {
+			const hashes = await syncUtil.hashModFiles([
 				{
-					path: "plugins",
 					enabled: true,
 					enforced: false,
-					silent: false,
+					path: "plugins/file1.dll",
 					restartRequired: true,
+					silent: false,
 				},
+			]);
+
+			expect(hashes).toMatchSnapshot();
+		});
+		
+		it("Should only hash a given file for one syncPath", async () => {
+			const hashes = await syncUtil.hashModFiles([
 				{
-					path: "user/mods",
 					enabled: true,
 					enforced: false,
-					silent: false,
-					restartRequired: false,
-				},
-			],
-			["user/mods/**/*.js", "user/mods/**/*.js.map"],
-		);
-
-		const vfs = new VFS();
-		const syncUtil = new SyncUtil(vfs as IVFS, config, logger);
-
-		const hashes = await syncUtil.hashModFiles(config.syncPaths);
-
-		expect(hashes).toMatchSnapshot();
-	});
-
-	it("should correctly ignore folders that do not exist", async () => {
-		const config = new Config(
-			[
-				{
-					path: "plugins",
-					enabled: true,
-					enforced: false,
-					silent: false,
+					path: "plugins/file1.dll",
 					restartRequired: true,
+					silent: false,
 				},
 				{
-					path: "user/bananas",
 					enabled: true,
 					enforced: false,
-					silent: false,
-					restartRequired: false,
-				},
-			],
-			["user/mods/**/*.js", "user/mods/**/*.js.map"],
-		);
-
-		const vfs = new VFS();
-		const syncUtil = new SyncUtil(vfs as IVFS, config, logger);
-
-		const hashes = await syncUtil.hashModFiles(config.syncPaths);
-
-		expect(Object.keys(hashes["plugins"])).toContain("plugins\\file1.dll");
-		expect(Object.keys(hashes["plugins"])).toContain(
-			"plugins\\OtherMod\\other_mod.dll",
-		);
-		expect(logger.warning).toHaveBeenCalledWith(
-			"Corter-ModSync: Directory 'user/bananas' does not exist, will be ignored.",
-		);
-	});
-
-	it("should correctly hash folders that didn't exist initially but are created", async () => {
-		const config = new Config(
-			[
-				{
-					path: "plugins",
-					enabled: true,
-					enforced: false,
-					silent: false,
+					path: "plugins/",
 					restartRequired: true,
-				},
-				{
-					path: "user/bananas",
-					enabled: true,
-					enforced: false,
 					silent: false,
-					restartRequired: false,
 				},
-			],
-			["user/mods/**/*.js", "user/mods/**/*.js.map"],
-		);
+			]);
 
-		const vfs = new VFS();
-		const syncUtil = new SyncUtil(vfs as IVFS, config, logger);
+			expect(Object.values(hashes).flatMap(Object.keys).filter((path) => path === "plugins\\file1.dll").length).toBe(1);
+			expect(hashes).toMatchSnapshot();
+		});
+		
+		it("Exclusions can be overridden by more specific syncPaths", async () => {
+			const newConfig = new Config(
+				[
+					...config.syncPaths,
+					{
+						path: "plugins/ModName/IncludedSubdir",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+					}
+				],
+				config.exclusions,
+			)
 
-		const hashes = await syncUtil.hashModFiles(config.syncPaths);
+			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
+			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+			
 
-		expect(Object.keys(hashes["plugins"])).toContain("plugins\\file1.dll");
-		expect(Object.keys(hashes["plugins"])).toContain(
-			"plugins\\OtherMod\\other_mod.dll",
-		);
-
-		expect(logger.warning).toHaveBeenCalledWith(
-			"Corter-ModSync: Directory 'user/bananas' does not exist, will be ignored.",
-		);
-
-		fs.mkdirSync("user/bananas", { recursive: true });
-		fs.writeFileSync("user/bananas/test.txt", "test");
-
-		const newHashes = await syncUtil.hashModFiles(config.syncPaths);
-
-		expect(newHashes).toMatchSnapshot();
-	});
-});
-
-describe("sanitizeDownloadPath", () => {
-	it("should sanitize correct download paths", () => {
-		expect(
-			syncUtil.sanitizeDownloadPath("plugins\\file1.dll", config.syncPaths),
-		).toBe("plugins\\file1.dll");
+			expect(hashes["plugins\\ModName\\IncludedSubdir"]).toHaveProperty("plugins\\ModName\\IncludedSubdir\\aFileToInclude");
+			expect(hashes).toMatchSnapshot();
+		});
 	});
 
-	it("should throw for download paths outside SPT root", () => {
-		expect(() => {
-			syncUtil.sanitizeDownloadPath("plugins\\..\\file1.dll", config.syncPaths);
-		}).toThrow();
-	});
+	describe("sanitizeDownloadPath", () => {
+		it("should sanitize correct download paths", () => {
+			expect(
+				syncUtil.sanitizeDownloadPath("plugins\\file1.dll", config.syncPaths),
+			).toBe("plugins\\file1.dll");
+		});
 
-	it("should throw for files not in syncPath", () => {
-		expect(() => {
-			syncUtil.sanitizeDownloadPath("otherDir\\file1.dll", config.syncPaths);
-		}).toThrow();
+		it("should throw for download paths outside SPT root", () => {
+			expect(() => {
+				syncUtil.sanitizeDownloadPath(
+					"plugins\\..\\file1.dll",
+					config.syncPaths,
+				);
+			}).toThrow();
+		});
+
+		it("should throw for files not in syncPath", () => {
+			expect(() => {
+				syncUtil.sanitizeDownloadPath("otherDir\\file1.dll", config.syncPaths);
+			}).toThrow();
+		});
 	});
 });

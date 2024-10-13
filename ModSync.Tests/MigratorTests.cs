@@ -30,7 +30,7 @@ public class MigratorTests
 
         CopyFilesRecursively(sourceDirectory, testDirectory);
 
-        List<SyncPath> syncPaths = [new SyncPath(@"BepInEx\plugins"), new SyncPath(@"BepInEx\patchers")];
+        List<SyncPath> syncPaths = [new(@"BepInEx\plugins"), new(@"BepInEx\patchers")];
 
         var migrator = new Migrator(testDirectory);
         migrator.TryMigrate(Version.Parse("0.8.0"), syncPaths);
@@ -48,7 +48,7 @@ public class MigratorTests
 
         CopyFilesRecursively(sourceDirectory, testDirectory);
 
-        List<SyncPath> syncPaths = [new SyncPath(@"BepInEx\plugins"), new SyncPath(@"BepInEx\patchers")];
+        List<SyncPath> syncPaths = [new(@"BepInEx\plugins"), new(@"BepInEx\patchers")];
 
         var migrator = new Migrator(testDirectory);
         migrator.TryMigrate(Version.Parse("0.8.0"), syncPaths);
@@ -66,10 +66,10 @@ public class MigratorTests
 
         CopyFilesRecursively(sourceDirectory, testDirectory);
 
-        List<SyncPath> syncPaths = [new SyncPath(@"BepInEx\plugins"), new SyncPath(@"BepInEx\patchers")];
+        List<SyncPath> syncPaths = [new(@"BepInEx\plugins"), new(@"BepInEx\patchers")];
 
         var migrator = new Migrator(testDirectory);
-        migrator.TryMigrate(Version.Parse("0.8.0"), syncPaths);
+        migrator.TryMigrate(Version.Parse("0.9.0"), syncPaths);
 
         var modSyncDir = Path.Combine(testDirectory, "ModSync_Data");
 
@@ -85,24 +85,24 @@ public class MigratorTests
             previousSync[@"BepInEx\plugins"].Keys
         );
 
-        Assert.AreEqual(1234567u, previousSync[@"BepInEx\plugins"][@"BepInEx\plugins\SAIN.dll"].crc);
-        Assert.AreEqual(1234567u, previousSync[@"BepInEx\plugins"][@"BepInEx\plugins\Corter-ModSync.dll"].crc);
+        Assert.AreEqual("", previousSync[@"BepInEx\plugins"][@"BepInEx\plugins\SAIN.dll"].hash);
+        Assert.AreEqual("", previousSync[@"BepInEx\plugins"][@"BepInEx\plugins\Corter-ModSync.dll"].hash);
 
         Assert.IsTrue(File.Exists(Path.Combine(modSyncDir, "Version.txt")));
-        Assert.AreEqual("0.8.0", File.ReadAllText(Path.Combine(modSyncDir, "Version.txt")));
+        Assert.AreEqual("0.9.0", File.ReadAllText(Path.Combine(modSyncDir, "Version.txt")));
 
         Directory.Delete(testDirectory, true);
     }
 
     [TestMethod]
-    public void TestMigrateModSyncDirectory()
+    public void TestMigrateModSyncDirectoryFrom080()
     {
         var sourceDirectory = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..\..\MigratorTests", "ModSyncDirectory"));
         var testDirectory = TestUtils.GetTemporaryDirectory();
 
         CopyFilesRecursively(sourceDirectory, testDirectory);
 
-        List<SyncPath> syncPaths = [new SyncPath(@"BepInEx\plugins"), new SyncPath(@"BepInEx\patchers")];
+        List<SyncPath> syncPaths = [new(@"BepInEx\plugins"), new(@"BepInEx\patchers")];
 
         var migrator = new Migrator(testDirectory);
         migrator.TryMigrate(Version.Parse("0.8.0"), syncPaths);
@@ -115,9 +115,9 @@ public class MigratorTests
         var modSyncDir = Path.Combine(testDirectory, "ModSync_Data");
         Assert.AreEqual("0.8.0", File.ReadAllText(Path.Combine(modSyncDir, "Version.txt")));
 
-        var sourcePreviousSync = File.ReadAllText(Path.Combine(sourceDirectory, "ModSync_Data", "PreviousSync.json"));
-        var testPreviousSync = File.ReadAllText(Path.Combine(testDirectory, "ModSync_Data", "PreviousSync.json"));
+        var previousSync = JsonConvert.DeserializeObject<SyncPathModFiles>(File.ReadAllText(Path.Combine(modSyncDir, "PreviousSync.json")));
 
-        Assert.AreEqual(sourcePreviousSync, testPreviousSync);
+        Assert.IsTrue(previousSync[@"BepInEx\plugins"].Keys.Contains(@"BepInEx\plugins\SAIN.dll"));
+        Assert.IsFalse(previousSync[@"BepInEx\plugins"][@"BepInEx\plugins\SAIN.dll"].directory);
     }
 }

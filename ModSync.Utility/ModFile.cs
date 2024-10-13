@@ -1,7 +1,7 @@
 ﻿namespace ModSync;
 
-public class ModFile(uint crc, bool nosync = false)
+public class ModFile(string hash, bool directory = false)
 {
-    public readonly uint crc = crc;
-    public readonly bool nosync = nosync;
+    public readonly string hash = hash;
+    public readonly bool directory = directory;
 }

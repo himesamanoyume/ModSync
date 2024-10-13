@@ -75,19 +75,26 @@ public class Server(Version pluginVersion)
         }
     }
 
-    public string GetModSyncVersion()
+    public async Task<string> GetModSyncVersion()
     {
-        return Json.Deserialize<string>(Task.Run(() => GetJson("/modsync/version")).Result);
+        return Json.Deserialize<string>(await GetJson("/modsync/version"));
     }
 
-    public List<SyncPath> GetModSyncPaths()
+    public async Task<List<SyncPath>> GetModSyncPaths()
     {
-        return Json.Deserialize<List<SyncPath>>(Task.Run(() => GetJson("/modsync/paths")).Result);
+        return Json.Deserialize<List<SyncPath>>(await GetJson("/modsync/paths"));
     }
 
-    public Dictionary<string, Dictionary<string, ModFile>> GetRemoteModFileHashes()
+    public async Task<List<string>> GetModSyncExclusions()
     {
-        return Json.Deserialize<Dictionary<string, Dictionary<string, ModFile>>>(Task.Run(() => GetJson("/modsync/hashes")).Result)
+        return Json.Deserialize<List<string>>(await GetJson("/modsync/exclusions"));
+    }
+
+    public async Task<Dictionary<string, Dictionary<string, ModFile>>> GetRemoteModFileHashes(List<SyncPath> syncPaths)
+    {
+        return Json.Deserialize<Dictionary<string, Dictionary<string, ModFile>>>(
+                await GetJson($"/modsync/hashes?path={string.Join("&path=", syncPaths.Where(s => s.enforced || s.enabled).Select(s => s.path))}")
+            )
             .ToDictionary(
                 item => item.Key,
                 item => item.Value.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase),

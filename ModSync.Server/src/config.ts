@@ -16,7 +16,7 @@ export type SyncPath = {
 
 type RawConfig = {
 	syncPaths: (string | SyncPath)[];
-	commonModExclusions: string[];
+	exclusions: string[];
 };
 
 const DEFAULT_CONFIG = `{
@@ -35,7 +35,7 @@ const DEFAULT_CONFIG = `{
 			"restartRequired": false
 		}
 	],
-	"commonModExclusions": [
+	"exclusions": [
 		// SPT Installer
 		"BepInEx/plugins/spt",
 		"BepInEx/patchers/spt-prepatch.dll",
@@ -64,25 +64,27 @@ const DEFAULT_CONFIG = `{
 		"user/mods/**/.git",
 		"user/mods/**/node_modules",
 		"user/mods/**/*.js",
-		"user/mods/**/*.js.map"
+		"user/mods/**/*.js.map",
+		// ModSync
+		"BepInEx/patchers/Corter-ModSync-Patcher.dll",
+		"**/*.nosync",
+		"**/*.nosync.txt"
 	]
 }`;
 
 export class Config {
+	private _globs: RegExp[];
 	constructor(
 		public syncPaths: Required<SyncPath>[],
-		public commonModExclusions: string[],
-	) {}
-
-	public isExcluded(filePath: string): boolean {
-		return this.commonModExclusions.some((exclusion) =>
-			glob(exclusion).test(unixPath(filePath)),
-		);
+		public exclusions: string[],
+	) {
+		this._globs = exclusions.map(glob);
 	}
 
-	public isParentExcluded(filePath: string): boolean {
-		return this.commonModExclusions.some((exclusion) =>
-			globNoEnd(exclusion).test(unixPath(filePath)),
+	public isExcluded(filePath: string, parent: string | null = null): boolean {
+		return this._globs.some(
+			(glob) =>
+				glob.test(unixPath(filePath)) && (parent === null || !glob.test(unixPath(parent))),
 		);
 	}
 }
@@ -120,9 +122,9 @@ export class ConfigUtil {
 				"Corter-ModSync: config.jsonc 'syncPaths' is not an array. Please verify your config is correct and try again.",
 			);
 
-		if (!Array.isArray(config.commonModExclusions))
+		if (!Array.isArray(config.exclusions))
 			throw new Error(
-				"Corter-ModSync: config.jsonc 'commonModExclusions' is not an array. Please verify your config is correct and try again.",
+				"Corter-ModSync: config.jsonc 'exclusions' is not an array. Please verify your config is correct and try again.",
 			);
 
 		for (const syncPath of config.syncPaths) {
@@ -162,15 +164,17 @@ export class ConfigUtil {
 		this.validateConfig(rawConfig);
 
 		return new Config(
-			rawConfig.syncPaths.map((syncPath) => ({
-				enabled: true,
-				// Not yet implemented
-				enforced: false,
-				silent: false,
-				restartRequired: true,
-				...(typeof syncPath === "string" ? { path: syncPath } : syncPath),
-			})),
-			rawConfig.commonModExclusions,
+			rawConfig.syncPaths
+				.map((syncPath) => ({
+					enabled: true,
+					// Not yet implemented
+					enforced: false,
+					silent: false,
+					restartRequired: true,
+					...(typeof syncPath === "string" ? { path: syncPath } : syncPath),
+				}))
+				.sort((a, b) => b.path.length - a.path.length),
+			rawConfig.exclusions,
 		);
 	}
 }

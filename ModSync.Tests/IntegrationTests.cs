@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SPT.Common.Utils;
 
@@ -19,6 +20,7 @@ public class IntegrationTests
         out SyncPathFileList addedFiles,
         out SyncPathFileList updatedFiles,
         out SyncPathFileList removedFiles,
+        out SyncPathFileList createdDirectories,
         ref List<string> downloadedFiles
     )
     {
@@ -33,12 +35,28 @@ public class IntegrationTests
         var previousSyncPath = Path.Combine(localPath, "ModSync_Data", "PreviousSync.json");
         var previousSync = VFS.Exists(previousSyncPath) ? Json.Deserialize<SyncPathModFiles>(File.ReadAllText(previousSyncPath)) : [];
 
-        var remoteModFiles = Sync.HashLocalFiles(remotePath, syncPaths, syncPaths);
-        var localModFiles = Sync.HashLocalFiles(localPath, syncPaths, syncPaths);
+        var localExclusionsPath = Path.Combine(localPath, "ModSync_Data", "Exclusions.json");
+        var localExclusions = VFS.Exists(localExclusionsPath)
+            ? Json.Deserialize<List<string>>(File.ReadAllText(localExclusionsPath)).Select(GlobRegex.Glob).ToList()
+            : [];
 
-        Sync.CompareModFiles(syncPaths, localModFiles, remoteModFiles, previousSync, out addedFiles, out updatedFiles, out removedFiles);
+        List<Regex> remoteExclusions = [GlobRegex.Glob("**/*.nosync"), GlobRegex.Glob("**/*.nosync.txt")];
 
-        downloadedFiles.AddRange(addedFiles.SelectMany(kvp => kvp.Value).Union(updatedFiles.SelectMany(kvp => kvp.Value)));
+        var remoteModFiles = Sync.HashLocalFiles(remotePath, syncPaths, remoteExclusions, []);
+        var localModFiles = Sync.HashLocalFiles(localPath, syncPaths, remoteExclusions, localExclusions);
+
+        Sync.CompareModFiles(
+            syncPaths,
+            localModFiles,
+            remoteModFiles,
+            previousSync,
+            out addedFiles,
+            out updatedFiles,
+            out removedFiles,
+            out createdDirectories
+        );
+
+        downloadedFiles.AddRange(addedFiles.SelectMany(kvp => kvp.Value).Concat(updatedFiles.SelectMany(kvp => kvp.Value)));
 
         return (remoteModFiles, configDeleteRemovedFiles ? removedFiles.SelectMany(kvp => kvp.Value).ToList() : []);
     }
@@ -57,6 +75,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -87,6 +106,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -117,6 +137,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -147,6 +168,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -155,7 +177,7 @@ public class IntegrationTests
         Assert.AreEqual(0, removedFiles["SAIN.dll"].Count);
 
         Assert.AreEqual(0, downloadedFiles.Count);
-        Assert.AreEqual(0u, previousSync["SAIN.dll"]["SAIN.dll"].crc);
+        Assert.AreEqual("00d1413dcaf30500b65fc68446b10646", previousSync["SAIN.dll"]["SAIN.dll"].hash);
     }
 
     [TestMethod]
@@ -172,6 +194,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -197,6 +220,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -222,6 +246,7 @@ public class IntegrationTests
             out var addedFiles,
             out var updatedFiles,
             out var removedFiles,
+            out _,
             ref downloadedFiles
         );
 
@@ -229,5 +254,49 @@ public class IntegrationTests
         Assert.AreEqual(0, updatedFiles["plugins"].Count);
         Assert.AreEqual(0, removedFiles["plugins"].Count);
         Assert.AreEqual(0, filesToDelete.Count);
+    }
+
+    [TestMethod]
+    public void TestCreateEmptyDirectories()
+    {
+        var testPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..\..\IntegrationTests", "CreateEmptyDirectories"));
+
+        List<string> downloadedFiles = [];
+
+        RunPlugin(
+            testPath,
+            syncPaths: [new SyncPath("plugins")],
+            configDeleteRemovedFiles: true,
+            out _,
+            out _,
+            out _,
+            out var createdDirectories,
+            ref downloadedFiles
+        );
+
+        Assert.AreEqual(1, createdDirectories["plugins"].Count);
+        Assert.AreEqual(@"plugins\TestMod\SuperImportantEmptyFolder", createdDirectories["plugins"][0]);
+    }
+
+    [TestMethod]
+    public void TestEnforcedBypassesLocalExclusions()
+    {
+        var testPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..\..\IntegrationTests", "EnforcedBypassesLocalExclusions"));
+
+        List<string> downloadedFiles = [];
+
+        RunPlugin(
+            testPath,
+            syncPaths: [new SyncPath("plugins", enforced: true)],
+            configDeleteRemovedFiles: true,
+            out _,
+            out var updatedFiles,
+            out var removedFiles,
+            out _,
+            ref downloadedFiles
+        );
+        
+        CollectionAssert.AreEquivalent(new List<string> {@"plugins\SAIN\SAIN.dll", @"plugins\SAIN\config.txt"}, updatedFiles["plugins"]);
+        CollectionAssert.AreEquivalent(new List<string> {@"plugins\SAIN\ExtraFile.txt"}, removedFiles["plugins"]);
     }
 }

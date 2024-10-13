@@ -10,6 +10,7 @@ import type { PreSptModLoader as IPreSptModLoader } from "@spt/loaders/PreSptMod
 import { fs, vol } from "memfs";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import { mock } from "vitest-mock-extended";
+import path from "node:path";
 
 vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
 
@@ -38,17 +39,12 @@ describe("Config", () => {
 	});
 
 	it("should correctly identify excluded paths", () => {
+	
 		expect(config.isExcluded("plugins/test.dll")).toBe(false);
 		expect(config.isExcluded("plugins/banana/node_modules")).toBe(true);
 		expect(config.isExcluded("plugins/banana/test.js")).toBe(true);
 		expect(config.isExcluded("plugins/banana/config.json")).toBe(false);
-	});
-
-	it("should correctly identify children of excluded paths", () => {
-		expect(config.isParentExcluded("plugins/test.dll")).toBe(false);
-		expect(config.isParentExcluded("plugins/banana/node_modules/lodash")).toBe(
-			true,
-		);
+		expect(config.isExcluded("plugins/banana/node_modules/lodash", "plugins/banana/node_modules/lodash")).toBe(false);
 	});
 });
 
@@ -57,22 +53,41 @@ describe("ConfigUtil", () => {
 		vol.reset();
 	});
 
+	it("should create config if none exists", async () => {
+		vol.fromNestedJSON(
+			{ "placeholder.txt": "to ensure directory exists" },
+			process.cwd(),
+		);
+
+		const config = await new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			mock<ILogger>(),
+		).load();
+
+		expect(fs.existsSync(path.join(process.cwd(), "config.jsonc"))).toBe(true);
+	});
+
 	it("should load config", async () => {
-		vol.fromNestedJSON({
-			"config.jsonc": `{
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
 				"syncPaths": [
 					"plugins",
 					{ "path": "mods", "enabled": false },
 					{ "path": "doesnotexist", "enabled": true }
 				],
 				// Exclusions for commonly used SPT mods
-				"commonModExclusions": [
+				"exclusions": [
 					"plugins/**/node_modules"
 				]
 			}`,
-			plugins: {},
-			mods: {},
-		});
+				plugins: {},
+				mods: {},
+			},
+			process.cwd(),
+		);
 
 		const config = await new ConfigUtil(
 			new VFS() as IVFS,
@@ -82,6 +97,13 @@ describe("ConfigUtil", () => {
 		).load();
 
 		expect(config.syncPaths).toEqual([
+			{
+				enabled: true,
+				enforced: false,
+				path: "doesnotexist",
+				restartRequired: true,
+				silent: false,
+			},
 			{
 				enabled: true,
 				enforced: false,
@@ -96,33 +118,27 @@ describe("ConfigUtil", () => {
 				restartRequired: true,
 				silent: false,
 			},
-			{
-				enabled: true,
-				enforced: false,
-				path: "doesnotexist",
-				restartRequired: true,
-				silent: false,
-			},
 		]);
 
-		expect(config.commonModExclusions).toEqual(["plugins/**/node_modules"]);
+		expect(config.exclusions).toEqual(["plugins/**/node_modules"]);
 	});
 
-	it("should reject absolute paths", () => {
+	it("should reject syncPath object without path", () => {
 		vol.fromNestedJSON(
 			{
 				"config.jsonc": `{
 					"syncPaths": [
-						"/etc/shadow",
-						"C:\\Windows\\System32\\cmd.exe",
+						{ "enabled": true, "enforced": false, "path": "plugins", "restartRequired": true, "silent": false },
+						{ "enabled": false, "enforced": false, "path": "mods", "restartRequired": true, "silent": false },
+						{ "enabled": true, "enforced": false, "restartRequired": true, "silent": false }
 					],
 					// Exclusions for commonly used SPT mods
-					"commonModExclusions": [
+					"exclusions": [
 						"plugins/**/node_modules"
 					]
 				}`,
 			},
-			"/tmp/src",
+			process.cwd(),
 		);
 
 		const configUtil = new ConfigUtil(
@@ -132,7 +148,34 @@ describe("ConfigUtil", () => {
 			mock<ILogger>(),
 		);
 
-		expect(configUtil.load()).rejects.toThrow();
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
+	});
+
+	it("should reject absolute paths", () => {
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
+					"syncPaths": [
+						"/etc/shadow",
+						"C:\\\\Windows\\\\System32\\\\cmd.exe"
+					],
+					// Exclusions for commonly used SPT mods
+					"exclusions": [
+						"plugins/**/node_modules"
+					]
+				}`,
+			},
+			process.cwd(),
+		);
+
+		const configUtil = new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			mock<ILogger>(),
+		);
+
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
 	});
 
 	it("should reject paths outside of SPT root", () => {
@@ -143,12 +186,12 @@ describe("ConfigUtil", () => {
 						"../../etc/shadow"
 					],
 					// Exclusions for commonly used SPT mods
-					"commonModExclusions": [
+					"exclusions": [
 						"plugins/**/node_modules"
 					]
 				}`,
 			},
-			"/tmp/src",
+			process.cwd(),
 		);
 
 		const configUtil = new ConfigUtil(
@@ -158,7 +201,55 @@ describe("ConfigUtil", () => {
 			mock<ILogger>(),
 		);
 
-		expect(configUtil.load()).rejects.toThrow();
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
+	});
+
+	it("should reject non-array syncPaths", () => {
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
+					"syncPaths": "plugins",
+					// Exclusions for commonly used SPT mods
+					"exclusions": [
+						"plugins/**/node_modules"
+					]
+				}`,
+			},
+			process.cwd(),
+		);
+
+		const configUtil = new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			mock<ILogger>(),
+		);
+
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
+	});
+
+	it("should reject on non-array exclusions", () => {
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
+					"syncPaths": [
+						"plugins"
+					],
+					// Exclusions for commonly used SPT mods
+					"exclusions": "plugins/**/node_modules"
+				}`,
+			},
+			process.cwd(),
+		);
+
+		const configUtil = new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			mock<ILogger>(),
+		);
+
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
 	});
 
 	it("should reject invalid JSON", () => {
@@ -168,7 +259,7 @@ describe("ConfigUtil", () => {
 					"invalid": "invalid"
 				}`,
 			},
-			"/tmp/src",
+			process.cwd(),
 		);
 
 		const configUtil = new ConfigUtil(
@@ -178,6 +269,6 @@ describe("ConfigUtil", () => {
 			mock<ILogger>(),
 		);
 
-		expect(configUtil.load()).rejects.toThrow();
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
 	});
 });

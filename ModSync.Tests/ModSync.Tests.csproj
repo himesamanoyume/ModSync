@@ -92,6 +92,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="IntegrationTests\CreateEmptyDirectories\local\" />
+    <Folder Include="IntegrationTests\CreateEmptyDirectories\remote\plugins\TestMod\SuperImportantEmptyFolder\" />
     <Folder Include="IntegrationTests\InitialEmptyManyFiles\local\" />
     <Folder Include="IntegrationTests\InitialEmptySingleFile\local\" />
     <Folder Include="IntegrationTests\RemoveSingleFile\remote\" />
@@ -104,6 +106,32 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="IntegrationTests\ClientNoSync\local\ModSync_Data\Exclusions.json" />
+    <Content Include="IntegrationTests\ClientNoSync\local\SAIN.dll" />
+    <Content Include="IntegrationTests\ClientNoSync\remote\SAIN.dll" />
+    <Content Include="IntegrationTests\CreateEmptyDirectories\remote\plugins\TestMod\Plugin.dll" />
+    <Content Include="IntegrationTests\DoNotUpdateWhenLocalChanges\local\ModSync_Data\PreviousSync.json" />
+    <Content Include="IntegrationTests\DoNotUpdateWhenLocalChanges\local\SAIN.dll" />
+    <Content Include="IntegrationTests\DoNotUpdateWhenLocalChanges\remote\SAIN.dll" />
+    <Content Include="IntegrationTests\EnforcedBypassesLocalExclusions\local\ModSync_Data\Exclusions.json" />
+    <Content Include="IntegrationTests\EnforcedBypassesLocalExclusions\local\plugins\SAIN\config.txt" />
+    <Content Include="IntegrationTests\EnforcedBypassesLocalExclusions\local\plugins\SAIN\SAIN.dll" />
+    <Content Include="IntegrationTests\EnforcedBypassesLocalExclusions\remote\plugins\SAIN\config.txt" />
+    <Content Include="IntegrationTests\EnforcedBypassesLocalExclusions\remote\plugins\SAIN\SAIN.dll" />
+    <Content Include="IntegrationTests\InitialEmptyManyFiles\remote\plugins\Corter-ModSync.dll" />
+    <Content Include="IntegrationTests\InitialEmptyManyFiles\remote\plugins\SAIN.dll" />
+    <Content Include="IntegrationTests\InitialEmptySingleFile\remote\SAIN.dll" />
+    <Content Include="IntegrationTests\MismatchedCases\local\ModSync_Data\PreviousSync.json" />
+    <Content Include="IntegrationTests\MismatchedCases\local\plugins\SAIN.dll" />
+    <Content Include="IntegrationTests\MismatchedCases\local\plugins\test.dll" />
+    <Content Include="IntegrationTests\MismatchedCases\remote\plugins\sain.dll" />
+    <Content Include="IntegrationTests\MismatchedCases\remote\plugins\TeSt.dll" />
+    <Content Include="IntegrationTests\RemoveSingleFile\local\.modsync" />
+    <Content Include="IntegrationTests\RemoveSingleFile\local\ModSync_Data\PreviousSync.json" />
+    <Content Include="IntegrationTests\RemoveSingleFile\local\SAIN.dll" />
+    <Content Include="IntegrationTests\UpdateSingleFile\local\ModSync_Data\PreviousSync.json" />
+    <Content Include="IntegrationTests\UpdateSingleFile\local\SAIN.dll" />
+    <Content Include="IntegrationTests\UpdateSingleFile\remote\SAIN.dll" />
     <Content Include="MigratorTests\ModSyncDirectory\ModSync_Data\PreviousSync.json" />
     <Content Include="MigratorTests\ModSyncDirectory\ModSync_Data\Version.txt" />
     <Content Include="MigratorTests\OldModSyncFile\.modsync" />
