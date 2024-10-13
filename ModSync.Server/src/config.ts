@@ -48,7 +48,7 @@ const DEFAULT_CONFIG = `{
 		"user/mods/fika-server/cache",
 		"BepInEx/plugins/Fika.Dedicated.dll",
 		// Live Flea Prices
-		"user/mods/DrakiaXYZ-LiveFleaPrices/config",
+		"user/mods/zzDrakiaXYZ-LiveFleaPrices/config",
 		// Questing Bots
 		"BepInEx/plugins/DanW-SPTQuestingBots/log",
 		// EFTApi
