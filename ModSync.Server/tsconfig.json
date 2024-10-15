@@ -12,9 +12,9 @@
 		"outDir": "tmp",
 		"strict": true,
 		"paths": {
-			"@spt/*": ["./types/*"],
+			"@spt/*": ["./types/*"]
 		},
-		"types": ["@types/bun", "vitest"]
+		"types": ["vitest"]
 	},
 	"exclude": ["node_modules", "dist", "tmp"]
 }
