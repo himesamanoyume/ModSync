@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import * as util from "util";
+import * as fs from "node:fs";
+import * as util from "node:util";
 import { metrohash128 } from "./metroHash";
 
 const SAMPLE_THRESHOLD = 10 * 1024 * 1024;
@@ -17,6 +17,7 @@ function putUvarint(buf: Uint8Array, x: number): number {
 	let i = 0;
 	while (x >= 0x80) {
 		buf[i] = (x & 0xff) | 0x80;
+		// biome-ignore lint/style/noParameterAssign: Why allocate more memory when already have memory
 		x >>= 7;
 		i++;
 	}
@@ -51,7 +52,7 @@ async function hashFileObject(
 		data = await readChunk(fd, 0, size);
 	} else {
 		const start = await readChunk(fd, 0, sampleSize);
-		const middle = await readChunk(fd, Math.floor((size - sampleSize) / 2), sampleSize);
+		const middle = await readChunk(fd, Math.floor(size / 2), sampleSize);
 		const end = await readChunk(fd, size - sampleSize, sampleSize);
 		data = Buffer.concat([start, middle, end]);
 	}

@@ -1,3 +1,5 @@
+#![no_main]
+
 use js_sys::Uint8Array;
 use metrohash::MetroHash128;
 use std::hash::Hasher;

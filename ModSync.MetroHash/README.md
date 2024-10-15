@@ -11,5 +11,5 @@ This package contains a WASM wrapper for [metrohash-rs](https://github.com/arthu
 
 ```bash
 cargo install
-wasm-pack build --release --target nodejs --out-name metrohash --no-pack --manifest-path Cargo.toml -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort
+wasm-pack build --release --target nodejs --out-name metrohash --no-pack --manifest-path Cargo.toml -Z build-std=panic_abort,std -Z build-std-features=optimize_for_size,panic_immediate_abort
 ```

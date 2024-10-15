@@ -1,8 +1,9 @@
+﻿namespace ModSync.Utility;
+
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using ModSync.Utility;
 
 public class ImoHash
 {
@@ -14,11 +15,11 @@ public class ImoHash
         var i = 0;
         while (x >= 0x80)
         {
-            buf[i] = (byte)(x | 0x80);
+            buf[i] = (byte)((x & 0xff) | 0x80);
             x >>= 7;
             i++;
         }
-        buf[i] = (byte)x;
+        buf[i] = (byte)(x & 0xff);
     }
 
     private static async Task<byte[]> ReadChunk(Stream fs, long position, int length)
@@ -33,10 +34,7 @@ public class ImoHash
         return buffer;
     }
 
-    public static async Task<string> HashFileObject(
-        Stream fs,
-        long sampleThreshold = SAMPLE_THRESHOLD,
-        int sampleSize = SAMPLE_SIZE)
+    public static async Task<string> HashFileObject(Stream fs, long sampleThreshold = SAMPLE_THRESHOLD, int sampleSize = SAMPLE_SIZE)
     {
         var size = fs.Length;
 
@@ -50,10 +48,10 @@ public class ImoHash
         else
         {
             var start = await ReadChunk(fs, 0, sampleSize);
-            var middle = await ReadChunk(fs, (size - sampleSize) / 2, sampleSize);
+            var middle = await ReadChunk(fs, size / 2, sampleSize);
             var end = await ReadChunk(fs, size - sampleSize, sampleSize);
             fs.Close(); // Close early to try and avoid conflicts with other mods
-            data = start.Concat(middle).Concat(end).ToArray();
+            data = [.. start, .. middle, .. end];
         }
 
         var hashTmp = MetroHash128.Hash(data);
@@ -63,10 +61,7 @@ public class ImoHash
         return BitConverter.ToString(hashTmp).Replace("-", "").ToLower();
     }
 
-    public static async Task<string> HashFile(
-        string filename,
-        long sampleThreshold = SAMPLE_THRESHOLD,
-        int sampleSize = SAMPLE_SIZE)
+    public static async Task<string> HashFile(string filename, long sampleThreshold = SAMPLE_THRESHOLD, int sampleSize = SAMPLE_SIZE)
     {
         using var fs = new FileStream(filename, FileMode.Open, FileAccess.Read);
         return await HashFileObject(fs, sampleThreshold, sampleSize);
