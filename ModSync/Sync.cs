@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using ModSync.Utility;
 
 namespace ModSync;
 
@@ -140,8 +141,8 @@ public static class Sync
         var results = new Dictionary<string, Dictionary<string, ModFile>>();
 
         foreach (var syncPath in syncPaths)
-            {
-                var path = Path.Combine(basePath, syncPath.path);
+        {
+            var path = Path.Combine(basePath, syncPath.path);
 
             results[syncPath.path] = (
                 await Task.WhenAll(

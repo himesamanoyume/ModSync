@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ModSync.Utility;
 using Newtonsoft.Json.Linq;
 using SPT.Common.Utils;
 

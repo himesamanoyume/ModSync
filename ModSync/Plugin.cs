@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using BepInEx;
@@ -13,6 +12,7 @@ using BepInEx.Logging;
 using Comfort.Common;
 using EFT.UI;
 using ModSync.UI;
+using ModSync.Utility;
 using SPT.Common.Utils;
 using UnityEngine;
 
@@ -388,8 +388,8 @@ public class Plugin : BaseUnityPlugin
         Logger.LogDebug("Loading local exclusions");
         if (IsDedicated && !VFS.Exists(LOCAL_EXCLUSIONS_PATH))
         {
-        try
-        {
+            try
+            {
                 VFS.WriteTextFile(LOCAL_EXCLUSIONS_PATH, Json.Serialize(DEDICATED_DEFAULT_EXCLUSIONS));
             }
             catch (Exception e)
@@ -433,8 +433,8 @@ public class Plugin : BaseUnityPlugin
         var localModFiles = await Sync.HashLocalFiles(
             Directory.GetCurrentDirectory(),
             EnabledSyncPaths,
-            exclusions.Select(GlobRegex.Glob).ToList(),
-            localExclusions.Select(GlobRegex.Glob).ToList()
+            exclusions.Select(Glob.Create).ToList(),
+            localExclusions.Select(Glob.Create).ToList()
         );
 
         Logger.LogDebug("Fetching remote file hashes");
@@ -442,7 +442,7 @@ public class Plugin : BaseUnityPlugin
         {
             var remoteHashes = await server.GetRemoteModFileHashes(EnabledSyncPaths);
 
-            var localExclusionsForRemote = localExclusions.Select(GlobRegex.GlobNoEnd).ToList();
+            var localExclusionsForRemote = localExclusions.Select(Glob.CreateNoEnd).ToList();
             remoteModFiles = EnabledSyncPaths
                 .Select(
                     (syncPath) =>

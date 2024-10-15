@@ -1,4 +1,4 @@
-﻿namespace ModSync;
+﻿namespace ModSync.Utility;
 
 public class ModFile(string hash, bool directory = false)
 {
