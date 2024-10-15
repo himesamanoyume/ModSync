@@ -2,8 +2,8 @@ import * as fs from "fs";
 import * as util from "util";
 import { metrohash128 } from "./metroHash";
 
-const SAMPLE_THRESHOLD = 128 * 1024;
-const SAMPLE_SIZE = 16 * 1024;
+const SAMPLE_THRESHOLD = 10 * 1024 * 1024;
+const SAMPLE_SIZE = 32 * 1024;
 
 // Promisify fs functions
 const fsOpen = util.promisify(fs.open);
@@ -51,7 +51,7 @@ async function hashFileObject(
 		data = await readChunk(fd, 0, size);
 	} else {
 		const start = await readChunk(fd, 0, sampleSize);
-		const middle = await readChunk(fd, Math.floor(size / 2), sampleSize);
+		const middle = await readChunk(fd, Math.floor((size - sampleSize) / 2), sampleSize);
 		const end = await readChunk(fd, size - sampleSize, sampleSize);
 		data = Buffer.concat([start, middle, end]);
 	}

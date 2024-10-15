@@ -120,60 +120,73 @@ public static class Sync
             .Concat(
                 Directory
                     .GetDirectories(directory, "*", SearchOption.TopDirectoryOnly)
-                    .Where((subDir) => !IsExcluded(exclusions, subDir.Replace($"{basePath}\\", ""), basePath))
+                    .Where((subDir) => !IsExcluded(exclusions, subDir.Replace($"{basePath}\\", "")))
                     .SelectMany((subDir) => Directory.GetFileSystemEntries(subDir).Length == 0 ? [subDir] : GetFilesInDirectory(basePath, subDir, exclusions))
             )
             .ToList();
     }
 
-    public static Dictionary<string, Dictionary<string, ModFile>> HashLocalFiles(
+    public static async Task<Dictionary<string, Dictionary<string, ModFile>>> HashLocalFiles(
         string basePath,
         List<SyncPath> syncPaths,
         List<Regex> remoteExclusions,
         List<Regex> localExclusions
     )
     {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var processedFiles = new HashSet<string>();
         var limitOpenFiles = new SemaphoreSlim(1024, 1024);
 
-        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var results = new Dictionary<string, Dictionary<string, ModFile>>();
 
-        var results = syncPaths
-            .Select(syncPath =>
+        foreach (var syncPath in syncPaths)
             {
                 var path = Path.Combine(basePath, syncPath.path);
 
-                return new KeyValuePair<string, Dictionary<string, ModFile>>(
-                    syncPath.path,
+            results[syncPath.path] = (
+                await Task.WhenAll(
                     GetFilesInDirectory(basePath, path, remoteExclusions.Concat(syncPath.enforced ? [] : localExclusions).ToList())
+                        .Where((file) => !processedFiles.Contains(file))
                         .AsParallel()
-                        .Select((file) => CreateModFile(basePath, file, limitOpenFiles))
-                        .ToDictionary(kvp => kvp.Result.Key, kvp => kvp.Result.Value, StringComparer.OrdinalIgnoreCase)
-                );
-            })
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+                        .Select(
+                            async (file) =>
+                            {
+                                await limitOpenFiles.WaitAsync();
+                                var modFile = await CreateModFile(file);
+                                limitOpenFiles.Release();
+
+                                processedFiles.Add(file);
+                                return new KeyValuePair<string, ModFile>(file.Replace($"{basePath}\\", ""), modFile);
+                            }
+                        )
+                )
+            ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+        }
 
         watch.Stop();
-        Plugin.Logger.LogInfo($"Corter-ModSync: Hashing took {watch.Elapsed.TotalMilliseconds}ms");
+        Plugin.Logger.LogInfo($"Corter-ModSync: Hashed {processedFiles.Count} files in {watch.Elapsed.TotalMilliseconds}ms");
 
         return results;
     }
 
-    public static async Task<KeyValuePair<string, ModFile>> CreateModFile(string basePath, string file, SemaphoreSlim limiter)
+    public static async Task<ModFile> CreateModFile(string file)
     {
         var hash = "";
-        var isDirectory = Directory.Exists(file);
-        if (!isDirectory)
+
+        if (Directory.Exists(file))
+            return new ModFile(hash, true);
+
+        try
         {
-            await limiter.WaitAsync();
-
             hash = await ImoHash.HashFile(file);
-
-            limiter.Release();
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError($"Corter-ModSync: Error hashing '{file}': {e.Message}");
+            hash = "";
         }
 
-        var relativePath = file.Replace($"{basePath}\\", "");
-
-        return new KeyValuePair<string, ModFile>(relativePath, new ModFile(hash, isDirectory));
+        return new ModFile(hash);
     }
 
     public static void CompareModFiles(
@@ -193,8 +206,8 @@ public static class Sync
         createdDirectories = GetCreatedDirectories(syncPaths, localModFiles, remoteModFiles);
     }
 
-    public static bool IsExcluded(List<Regex> exclusions, string path, string parent = null)
+    public static bool IsExcluded(List<Regex> exclusions, string path)
     {
-        return exclusions.Any(regex => regex.IsMatch(path.Replace(@"\", "/")) && (parent == null || !regex.IsMatch(parent.Replace(@"\", "/"))));
+        return exclusions.Any(regex => regex.IsMatch(path.Replace(@"\", "/")));
     }
 }

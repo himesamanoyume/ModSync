@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -45,13 +45,16 @@ public class Migrator(string baseDir)
         return Version.Parse("0.0.0");
     }
 
-    private void Cleanup()
+    private void Cleanup(Version pluginVersion)
     {
         if (Directory.Exists(MODSYNC_DIR))
             Directory.Delete(MODSYNC_DIR, true);
 
         foreach (var file in CLEANUP_FILES.Where(File.Exists))
             File.Delete(file);
+
+        Directory.CreateDirectory(MODSYNC_DIR);
+        File.WriteAllText(VERSION_PATH, pluginVersion.ToString());
     }
 
     public void TryMigrate(Version pluginVersion, List<SyncPath> syncPaths)
@@ -60,7 +63,7 @@ public class Migrator(string baseDir)
 
         if (oldVersion == Version.Parse("0.0.0"))
         {
-            Cleanup();
+            Cleanup(pluginVersion);
             return;
         }
 
@@ -70,7 +73,7 @@ public class Migrator(string baseDir)
 
             if (!persist.ContainsKey("previousSync") || persist["previousSync"] == null)
             {
-                Cleanup();
+                Cleanup(pluginVersion);
                 return;
             }
 

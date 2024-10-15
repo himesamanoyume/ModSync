@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -35,7 +35,10 @@ public class MigratorTests
         var migrator = new Migrator(testDirectory);
         migrator.TryMigrate(Version.Parse("0.8.0"), syncPaths);
 
-        Assert.AreEqual(0, Directory.GetFiles(testDirectory, "*", SearchOption.AllDirectories).Length);
+        CollectionAssert.AreEquivalent(
+            new List<string> { Path.Combine(testDirectory, @"ModSync_Data\Version.txt") },
+            Directory.GetFiles(testDirectory, "*", SearchOption.AllDirectories)
+        );
 
         Directory.Delete(testDirectory, true);
     }
@@ -53,7 +56,10 @@ public class MigratorTests
         var migrator = new Migrator(testDirectory);
         migrator.TryMigrate(Version.Parse("0.8.0"), syncPaths);
 
-        Assert.AreEqual(0, Directory.GetFiles(testDirectory, "*", SearchOption.AllDirectories).Length);
+        CollectionAssert.AreEquivalent(
+            new List<string> { Path.Combine(testDirectory, @"ModSync_Data\Version.txt") },
+            Directory.GetFiles(testDirectory, "*", SearchOption.AllDirectories)
+        );
 
         Directory.Delete(testDirectory, true);
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -497,7 +497,7 @@ public class HashLocalFilesTests
     public void TestHashLocalFiles()
     {
         var expected = fileContents.Where(kvp => !Sync.IsExcluded(exclusions, kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins")], exclusions, []);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins")], exclusions, []).Result;
 
         Assert.IsNotNull(result);
 
@@ -513,7 +513,7 @@ public class HashLocalFilesTests
     [TestMethod]
     public void TestHashLocalFilesWithDirectoryThatDoesNotExist()
     {
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("bad_directory")], exclusions, []);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("bad_directory")], exclusions, []).Result;
         Assert.IsNotNull(result);
         Assert.AreEqual(0, result["bad_directory"].Count);
     }
@@ -523,7 +523,7 @@ public class HashLocalFilesTests
     {
         var syncPath = Path.Combine(testDirectory, @"plugins\file1.dll");
 
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []).Result;
         Assert.IsNotNull(result);
         Assert.AreEqual(1, result[syncPath].Count);
         Assert.IsTrue(result[syncPath].ContainsKey(@"plugins\file1.dll"));
@@ -534,7 +534,7 @@ public class HashLocalFilesTests
     public void TestHashLocalFilesWithSingleFileThatDoesNotExist()
     {
         var syncPath = Path.Combine(testDirectory, "does_not_exist.dll");
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []).Result;
         Assert.IsNotNull(result);
         Assert.AreEqual(0, result[syncPath].Count);
     }
@@ -543,7 +543,7 @@ public class HashLocalFilesTests
     public void TestHashLocalFilesEnforcedIgnoresLocalExclusions()
     {
         var expected = fileContents.Where(kvp => !Sync.IsExcluded(exclusions, kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins", enforced: true)], exclusions, [GlobRegex.Glob("plugins/file1.dll")]);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins", enforced: true)], exclusions, [GlobRegex.Glob("plugins/file1.dll")]).Result;
         CollectionAssert.AreEquivalent(expected.Keys, result["plugins"].Keys);
     }
 }

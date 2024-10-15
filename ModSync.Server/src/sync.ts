@@ -43,7 +43,7 @@ export class SyncUtil {
 		for (const dirName of this.vfs.getDirs(dir)) {
 			const subDir = path.join(dir, dirName);
 
-			if (this.config.isExcluded(subDir, baseDir)) continue;
+			if (this.config.isExcluded(subDir)) continue;
 			
 			const subFiles = await this.getFilesInDir(baseDir, subDir);
 			if (!subFiles.length) files.push(subDir)
@@ -85,6 +85,7 @@ export class SyncUtil {
 		const result: Record<string, Record<string, ModFile>> = {};
 		const processedFiles = new Set<string>();
 
+		const startTime = performance.now();
 		for (const syncPath of syncPaths) {
 			const files = await this.getFilesInDir(syncPath.path, syncPath.path);
 			const filesResult: Record<string, ModFile> = {};
@@ -99,6 +100,8 @@ export class SyncUtil {
 
 			result[winPath(syncPath.path)] = filesResult;
 		}
+		
+		this.logger.info(`Corter-ModSync: Hashed ${processedFiles.size} files in ${performance.now() - startTime}ms`);
 
 		return result;
 	}

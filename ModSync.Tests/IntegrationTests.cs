@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -42,8 +42,8 @@ public class IntegrationTests
 
         List<Regex> remoteExclusions = [GlobRegex.Glob("**/*.nosync"), GlobRegex.Glob("**/*.nosync.txt")];
 
-        var remoteModFiles = Sync.HashLocalFiles(remotePath, syncPaths, remoteExclusions, []);
-        var localModFiles = Sync.HashLocalFiles(localPath, syncPaths, remoteExclusions, localExclusions);
+        var remoteModFiles = Sync.HashLocalFiles(remotePath, syncPaths, remoteExclusions, localExclusions).Result;
+        var localModFiles = Sync.HashLocalFiles(localPath, syncPaths, remoteExclusions, localExclusions).Result;
 
         Sync.CompareModFiles(
             syncPaths,

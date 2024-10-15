@@ -1,4 +1,4 @@
-﻿import { expect, beforeEach, describe, it, vi } from "vitest";
+import { expect, beforeEach, describe, it, vi } from "vitest";
 
 import { Config, ConfigUtil } from "../src/config";
 import { VFS } from "./utils/vfs";
@@ -44,7 +44,7 @@ describe("Config", () => {
 		expect(config.isExcluded("plugins/banana/node_modules")).toBe(true);
 		expect(config.isExcluded("plugins/banana/test.js")).toBe(true);
 		expect(config.isExcluded("plugins/banana/config.json")).toBe(false);
-		expect(config.isExcluded("plugins/banana/node_modules/lodash", "plugins/banana/node_modules/lodash")).toBe(false);
+		expect(config.isExcluded("plugins/banana/node_modules/lodash")).toBe(false);
 	});
 });
 

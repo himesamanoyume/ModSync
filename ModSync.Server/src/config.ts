@@ -2,7 +2,7 @@
 import type { PreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { JsonUtil } from "@spt/utils/JsonUtil";
 import type { VFS } from "@spt/utils/VFS";
-import { glob, globNoEnd } from "./utility/glob";
+import { glob } from "./utility/glob";
 import { unixPath } from "./utility/misc";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 
@@ -81,10 +81,10 @@ export class Config {
 		this._globs = exclusions.map(glob);
 	}
 
-	public isExcluded(filePath: string, parent: string | null = null): boolean {
+	public isExcluded(filePath: string): boolean {
 		return this._globs.some(
 			(glob) =>
-				glob.test(unixPath(filePath)) && (parent === null || !glob.test(unixPath(parent))),
+				glob.test(unixPath(filePath)),
 		);
 	}
 }

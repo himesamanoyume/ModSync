@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -93,7 +93,7 @@ public class Server(Version pluginVersion)
     public async Task<Dictionary<string, Dictionary<string, ModFile>>> GetRemoteModFileHashes(List<SyncPath> syncPaths)
     {
         return Json.Deserialize<Dictionary<string, Dictionary<string, ModFile>>>(
-                await GetJson($"/modsync/hashes?path={string.Join("&path=", syncPaths.Where(s => s.enforced || s.enabled).Select(s => s.path))}")
+                await GetJson($"/modsync/hashes?path={string.Join("&path=", syncPaths.Select(path => Uri.EscapeUriString(path.path.Replace(@"\", "/"))))}")
             )
             .ToDictionary(
                 item => item.Key,

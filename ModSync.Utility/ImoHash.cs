@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -45,12 +45,14 @@ public class ImoHash
         if (size < sampleThreshold || sampleSize < 1 || size < (4 * sampleSize))
         {
             data = await ReadChunk(fs, 0, (int)size);
+            fs.Close(); // Close early to try and avoid conflicts with other mods
         }
         else
         {
             var start = await ReadChunk(fs, 0, sampleSize);
-            var middle = await ReadChunk(fs, size / 2, sampleSize);
+            var middle = await ReadChunk(fs, (size - sampleSize) / 2, sampleSize);
             var end = await ReadChunk(fs, size - sampleSize, sampleSize);
+            fs.Close(); // Close early to try and avoid conflicts with other mods
             data = start.Concat(middle).Concat(end).ToArray();
         }
 
