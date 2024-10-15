@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ModSync.Utility;
 
-namespace ModSync.Tests;
+namespace ModSync.Test;
 
-[TestClass]
+[TestFixture]
 public class AddedFilesTests
 {
-    [TestMethod]
+    [Test]
     public void TestSingleAdded()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -37,10 +32,10 @@ public class AddedFilesTests
 
         var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
 
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, addedFiles[@"BepInEx\plugins"]);
+        Assert.That(addedFiles[@"BepInEx\plugins"], Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }));
     }
 
-    [TestMethod]
+    [Test]
     public void TestNoneAdded()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -61,14 +56,14 @@ public class AddedFilesTests
 
         var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
 
-        Assert.AreEqual(0, addedFiles[@"BepInEx\plugins"].Count);
+        Assert.That(addedFiles[@"BepInEx\plugins"], Is.Empty);
     }
 }
 
-[TestClass]
+[TestFixture]
 public class UpdatedFilesTests
 {
-    [TestMethod]
+    [Test]
     public void TestSingleAdded()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -101,10 +96,10 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(0, updatedFiles[@"BepInEx\plugins"].Count);
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public void TestSingleUpdated()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -145,10 +140,10 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, updatedFiles[@"BepInEx\plugins"]);
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }));
     }
 
-    [TestMethod]
+    [Test]
     public void TestOnlyLocalUpdated()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -189,10 +184,10 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(0, updatedFiles[@"BepInEx\plugins"].Count);
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public void TestFilesExistButPreviousEmpty()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -224,11 +219,14 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(1, updatedFiles[@"BepInEx\plugins"].Count);
-        Assert.AreEqual(@"BepInEx\plugins\Corter-ModSync.dll", updatedFiles[@"BepInEx\plugins"][0]);
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Has.Count.EqualTo(1));
+            Assert.That(updatedFiles[@"BepInEx\plugins"][0], Is.EqualTo(@"BepInEx\plugins\Corter-ModSync.dll"));
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestBothUpdated()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -269,10 +267,10 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(0, updatedFiles[@"BepInEx\plugins"].Count);
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public void TestSingleUpdatedEnforced()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -313,16 +311,19 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(2, updatedFiles[@"BepInEx\plugins"].Count);
-        Assert.IsTrue(updatedFiles[@"BepInEx\plugins"].Contains(@"BepInEx\plugins\Corter-ModSync.dll"));
-        Assert.IsTrue(updatedFiles[@"BepInEx\plugins"].Contains(@"BepInEx\plugins\SAIN\SAIN.dll"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Has.Count.EqualTo(2));
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Does.Contain(@"BepInEx\plugins\Corter-ModSync.dll"));
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Does.Contain(@"BepInEx\plugins\SAIN\SAIN.dll"));
+        });
     }
 }
 
-[TestClass]
+[TestFixture]
 public class RemovedFilesTests
 {
-    [TestMethod]
+    [Test]
     public void TestSingleRemoved()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -359,10 +360,10 @@ public class RemovedFilesTests
 
         var removedFiles = Sync.GetRemovedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, removedFiles[@"BepInEx\plugins"]);
+        Assert.That(removedFiles[@"BepInEx\plugins"], Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }));
     }
 
-    [TestMethod]
+    [Test]
     public void TestSingleRemovedEnforced()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -400,17 +401,17 @@ public class RemovedFilesTests
 
         var removedFiles = Sync.GetRemovedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        CollectionAssert.AreEquivalent(
-            new List<string> { @"BepInEx\plugins\Corter-ModSync.dll", @"BepInEx\plugins\OtherPlugin\OtherPlugin.dll" },
-            removedFiles[@"BepInEx\plugins"]
+        Assert.That(
+            removedFiles[@"BepInEx\plugins"],
+            Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll", @"BepInEx\plugins\OtherPlugin\OtherPlugin.dll" })
         );
     }
 }
 
-[TestClass]
+[TestFixture]
 public class CreatedDirectoriesTests
 {
-    [TestMethod]
+    [Test]
     public void TestCreatedDirectories()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>> { { @"BepInEx\plugins", new Dictionary<string, ModFile>() } };
@@ -428,24 +429,24 @@ public class CreatedDirectoriesTests
 
         var createdDirectories = Sync.GetCreatedDirectories([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles);
 
-        CollectionAssert.AreEquivalent(
-            new List<string> { @"BepInEx\plugins\ModThatDoesntErrorCheckFolders\SuperImportantEmptyFolder" },
-            createdDirectories[@"BepInEx\plugins"]
+        Assert.That(
+            createdDirectories[@"BepInEx\plugins"],
+            Is.EquivalentTo(new List<string> { @"BepInEx\plugins\ModThatDoesntErrorCheckFolders\SuperImportantEmptyFolder" })
         );
     }
 }
 
-[TestClass]
+[TestFixture]
 public class HashLocalFilesTests
 {
     private readonly List<Regex> exclusions =
     [
-        GlobRegex.GlobNoEnd("**/*.nosync"),
-        GlobRegex.GlobNoEnd("**/*.nosync.txt"),
-        GlobRegex.GlobNoEnd("plugins/file2.dll"),
-        GlobRegex.GlobNoEnd("plugins/file3.dll"),
-        GlobRegex.GlobNoEnd("plugins/ModName"),
-        GlobRegex.GlobNoEnd("plugins/OtherMod/subdir"),
+        Glob.CreateNoEnd("**/*.nosync"),
+        Glob.CreateNoEnd("**/*.nosync.txt"),
+        Glob.CreateNoEnd("plugins/file2.dll"),
+        Glob.CreateNoEnd("plugins/file3.dll"),
+        Glob.CreateNoEnd("plugins/ModName"),
+        Glob.CreateNoEnd("plugins/OtherMod/subdir"),
     ];
 
     private readonly Dictionary<string, string> fileContents =
@@ -465,7 +466,7 @@ public class HashLocalFilesTests
 
     private string testDirectory;
 
-    [TestInitialize]
+    [SetUp]
     public void Setup()
     {
         testDirectory = TestUtils.GetTemporaryDirectory();
@@ -487,68 +488,78 @@ public class HashLocalFilesTests
         Console.WriteLine(testDirectory);
     }
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         Directory.Delete(testDirectory, true);
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFiles()
     {
         var expected = fileContents.Where(kvp => !Sync.IsExcluded(exclusions, kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins")], exclusions, []).Result;
 
-        Assert.IsNotNull(result);
+        Assert.That(result, Is.Not.Null);
 
         foreach (var kvp in expected)
         {
-            Assert.IsTrue(result["plugins"].ContainsKey(kvp.Key));
-            Assert.AreEqual(ImoHash.HashFileObject(new MemoryStream(Encoding.ASCII.GetBytes(kvp.Value))).Result, result["plugins"][kvp.Key].hash);
+            Assert.That(result["plugins"], Does.ContainKey(kvp.Key));
+            Assert.That(result["plugins"][kvp.Key].hash, Is.EqualTo(ImoHash.HashFileObject(new MemoryStream(Encoding.ASCII.GetBytes(kvp.Value))).Result));
         }
 
-        Assert.AreEqual(2, result["plugins"].Count);
+        Assert.That(result["plugins"], Has.Count.EqualTo(2));
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesWithDirectoryThatDoesNotExist()
     {
         var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("bad_directory")], exclusions, []).Result;
-        Assert.IsNotNull(result);
-        Assert.AreEqual(0, result["bad_directory"].Count);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result["bad_directory"], Is.Empty);
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesWithSingleFile()
     {
         var syncPath = Path.Combine(testDirectory, @"plugins\file1.dll");
 
         var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []).Result;
-        Assert.IsNotNull(result);
-        Assert.AreEqual(1, result[syncPath].Count);
-        Assert.IsTrue(result[syncPath].ContainsKey(@"plugins\file1.dll"));
-        Assert.AreEqual("0ce304b7ff04260d67adfdee0af9dd3b", result[syncPath][@"plugins\file1.dll"].hash);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result[syncPath], Has.Count.EqualTo(1));
+            Assert.That(result[syncPath], Does.ContainKey(@"plugins\file1.dll"));
+            Assert.That(result[syncPath][@"plugins\file1.dll"].hash, Is.EqualTo("0ce304b7ff04260d67adfdee0af9dd3b"));
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesWithSingleFileThatDoesNotExist()
     {
         var syncPath = Path.Combine(testDirectory, "does_not_exist.dll");
         var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []).Result;
-        Assert.IsNotNull(result);
-        Assert.AreEqual(0, result[syncPath].Count);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result[syncPath], Is.Empty);
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesEnforcedIgnoresLocalExclusions()
     {
         var expected = fileContents.Where(kvp => !Sync.IsExcluded(exclusions, kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins", enforced: true)], exclusions, [GlobRegex.Glob("plugins/file1.dll")]).Result;
-        CollectionAssert.AreEquivalent(expected.Keys, result["plugins"].Keys);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins", enforced: true)], exclusions, [Glob.Create("plugins/file1.dll")]).Result;
+        Assert.That(result["plugins"].Keys, Is.EquivalentTo(expected.Keys));
     }
 }
 
-[TestClass]
+[TestFixture]
 public class CreateModFileTest
 {
     private readonly Dictionary<string, string> fileContents =
@@ -569,7 +580,7 @@ public class CreateModFileTest
     private string testDirectory;
     private SemaphoreSlim limiter = new(1024, 1024);
 
-    [TestInitialize]
+    [SetUp]
     public void Setup()
     {
         testDirectory = TestUtils.GetTemporaryDirectory();
@@ -583,7 +594,7 @@ public class CreateModFileTest
             var fileParent = Path.GetDirectoryName(filePath);
 
             if (!Directory.Exists(fileParent))
-                Directory.CreateDirectory(fileParent);
+                Directory.CreateDirectory(fileParent!);
 
             File.WriteAllText(filePath, kvp.Value);
         }
@@ -591,32 +602,38 @@ public class CreateModFileTest
         Console.WriteLine(testDirectory);
     }
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         Directory.Delete(testDirectory, true);
     }
 
-    [TestMethod]
+    [Test]
     public void TestCreateModFile()
     {
-        var kv = Sync.CreateModFile(testDirectory, Path.Combine(testDirectory, "file1.dll"), limiter);
+        var modFile = Sync.CreateModFile(Path.Combine(testDirectory, "file1.dll")).Result;
 
-        Assert.IsNotNull(kv.Result.Value);
-        Assert.AreEqual("00d1413dcaf30500b65fc68446b10646", kv.Result.Value.hash);
+        Assert.Multiple(() =>
+        {
+            Assert.That(modFile, Is.Not.Null);
+            Assert.That(modFile.hash, Is.EqualTo("00d1413dcaf30500b65fc68446b10646"));
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestCreateModFileWithContent()
     {
-        var kv = Sync.CreateModFile(testDirectory, Path.Combine(testDirectory, "file3.dll"), limiter);
+        var modFile = Sync.CreateModFile(Path.Combine(testDirectory, "file3.dll")).Result;
 
-        Assert.IsNotNull(kv.Result.Value);
-        Assert.AreEqual("0e51ecd1fbd55148997270d6634ff6db", kv.Result.Value.hash);
+        Assert.Multiple(() =>
+        {
+            Assert.That(modFile, Is.Not.Null);
+            Assert.That(modFile.hash, Is.EqualTo("0e51ecd1fbd55148997270d6634ff6db"));
+        });
     }
 }
 
-[TestClass]
+[TestFixture]
 public class IsExcludedTest
 {
     private readonly Dictionary<string, string> fileContents =
@@ -635,17 +652,17 @@ public class IsExcludedTest
 
     private readonly List<Regex> exclusions =
     [
-        GlobRegex.Glob("**/*.nosync"),
-        GlobRegex.Glob("**/*.nosync.txt"),
-        GlobRegex.Glob("file2.dll"),
-        GlobRegex.Glob("file3.dll"),
-        GlobRegex.Glob(@"ModName"),
-        GlobRegex.Glob(@"OtherMod\subdir"),
+        Glob.Create("**/*.nosync"),
+        Glob.Create("**/*.nosync.txt"),
+        Glob.Create("file2.dll"),
+        Glob.Create("file3.dll"),
+        Glob.Create(@"ModName"),
+        Glob.Create(@"OtherMod\subdir"),
     ];
 
     private string testDirectory;
 
-    [TestInitialize]
+    [SetUp]
     public void Setup()
     {
         testDirectory = TestUtils.GetTemporaryDirectory();
@@ -659,7 +676,7 @@ public class IsExcludedTest
             var fileParent = Path.GetDirectoryName(filePath);
 
             if (!Directory.Exists(fileParent))
-                Directory.CreateDirectory(fileParent);
+                Directory.CreateDirectory(fileParent!);
 
             File.WriteAllText(filePath, kvp.Value);
         }
@@ -667,23 +684,23 @@ public class IsExcludedTest
         Console.WriteLine(testDirectory);
     }
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         Directory.Delete(testDirectory, true);
     }
 
-    [TestMethod]
+    [Test]
     public void TestIsNotExcluded()
     {
         var result = Sync.IsExcluded(exclusions, "file1.dll");
-        Assert.IsFalse(result);
+        Assert.That(result, Is.False);
     }
 
-    [TestMethod]
+    [Test]
     public void TestIsExcluded()
     {
         var result = Sync.IsExcluded(exclusions, "file2.dll");
-        Assert.IsTrue(result);
+        Assert.That(result, Is.True);
     }
 }
