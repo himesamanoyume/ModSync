@@ -72,7 +72,7 @@ public class Plugin : BaseUnityPlugin
             .Select(syncPath =>
                 addedFiles[syncPath.path].Count
                 + updatedFiles[syncPath.path].Count
-                + (configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Count : 0)
+                + (configDeleteRemovedFiles.Value || syncPath.enforced ? removedFiles[syncPath.path].Count : 0)
                 + createdDirectories[syncPath.path].Count
             )
             .Sum();
@@ -86,7 +86,7 @@ public class Plugin : BaseUnityPlugin
             || (
                 addedFiles[syncPath.path].Count == 0
                 && updatedFiles[syncPath.path].Count == 0
-                && (!configDeleteRemovedFiles.Value || removedFiles[syncPath.path].Count == 0)
+                && (!(configDeleteRemovedFiles.Value || syncPath.enforced) || removedFiles[syncPath.path].Count == 0)
             )
         );
 
@@ -96,7 +96,7 @@ public class Plugin : BaseUnityPlugin
             || (
                 addedFiles[syncPath.path].Count == 0
                 && updatedFiles[syncPath.path].Count == 0
-                && (!configDeleteRemovedFiles.Value || removedFiles[syncPath.path].Count == 0)
+                && (!(configDeleteRemovedFiles.Value || syncPath.enforced) || removedFiles[syncPath.path].Count == 0)
             )
         );
 
@@ -116,10 +116,8 @@ public class Plugin : BaseUnityPlugin
         Logger.LogInfo($"Found {UpdateCount} files to download.");
         Logger.LogInfo($"- {addedFiles.SelectMany(path => path.Value).Count()} added");
         Logger.LogInfo($"- {updatedFiles.SelectMany(path => path.Value).Count()} updated");
-        if (configDeleteRemovedFiles.Value)
+        if (removedFiles.Count > 0)
             Logger.LogInfo($"- {removedFiles.SelectMany(path => path.Value).Count()} removed");
-        else
-            removedFiles.Clear();
 
         if (UpdateCount > 0)
         {
@@ -168,30 +166,27 @@ public class Plugin : BaseUnityPlugin
         if (!Directory.Exists(PENDING_UPDATES_DIR))
             Directory.CreateDirectory(PENDING_UPDATES_DIR);
 
-        EnabledSyncPaths.ForEach(
-            (syncPath) =>
-                directoriesToCreate[syncPath.path]
-                    .ForEach(dir =>
-                    {
-                        try
-                        {
-                            Directory.CreateDirectory(dir);
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.LogError("Failed to create empty directories: " + e);
-                        }
-                    })
-        );
+        foreach (var syncPath in EnabledSyncPaths)
+        {
+            foreach (var dir in directoriesToCreate[syncPath.path])
+            {
+                try
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError("Failed to create empty directories: " + e);
+                }
+            }
+        }
 
         downloadCount = 0;
         totalDownloadCount = 0;
 
         var limiter = new SemaphoreSlim(8, maxCount: 8);
         var filesToDownload = EnabledSyncPaths
-            .Select(
-                (syncPath) => new KeyValuePair<string, List<string>>(syncPath.path, filesToAdd[syncPath.path].Concat(filesToUpdate[syncPath.path]).ToList())
-            )
+            .Select((syncPath) => new KeyValuePair<string, List<string>>(syncPath.path, [.. filesToAdd[syncPath.path], .. filesToUpdate[syncPath.path]]))
             .ToDictionary((kvp) => kvp.Key, (kvp) => kvp.Value);
 
         Logger.LogInfo($"Starting download of {UpdateCount} files.");
@@ -268,7 +263,7 @@ public class Plugin : BaseUnityPlugin
     private void WriteModSyncData()
     {
         VFS.WriteTextFile(PREVIOUS_SYNC_PATH, Json.Serialize(remoteModFiles));
-        if (configDeleteRemovedFiles.Value && EnabledSyncPaths.Any(syncPath => removedFiles[syncPath.path].Count != 0))
+        if (EnabledSyncPaths.Any(syncPath => (configDeleteRemovedFiles.Value || syncPath.enforced) && removedFiles[syncPath.path].Count != 0))
             VFS.WriteTextFile(REMOVED_FILES_PATH, Json.Serialize(removedFiles.SelectMany(kvp => kvp.Value).ToList()));
     }
 
@@ -307,9 +302,7 @@ public class Plugin : BaseUnityPlugin
             var version = await server.GetModSyncVersion();
             Logger.LogInfo($"ModSync found server version: {version}");
             if (version != Info.Metadata.Version.ToString())
-                Logger.LogWarning(
-                    "ModSync server version does not match plugin version. Found server version: " + version + ". Plugin may not work as expected!"
-                );
+                Logger.LogWarning($"ModSync server version does not match plugin version. Found server version: {version}. Plugin may not work as expected!");
         }
         catch (Exception e)
         {
@@ -404,7 +397,7 @@ public class Plugin : BaseUnityPlugin
 
         try
         {
-            localExclusions = (VFS.Exists(LOCAL_EXCLUSIONS_PATH) ? Json.Deserialize<List<string>>(await VFS.ReadTextFileAsync(LOCAL_EXCLUSIONS_PATH)) : []);
+            localExclusions = VFS.Exists(LOCAL_EXCLUSIONS_PATH) ? Json.Deserialize<List<string>>(await VFS.ReadTextFileAsync(LOCAL_EXCLUSIONS_PATH)) : [];
         }
         catch (Exception e)
         {
@@ -467,9 +460,6 @@ public class Plugin : BaseUnityPlugin
             );
         }
 
-        VFS.WriteTextFile(Path.Combine(Directory.GetCurrentDirectory(), "LocalHashes.json"), Json.Serialize(localModFiles));
-        VFS.WriteTextFile(Path.Combine(Directory.GetCurrentDirectory(), "RemoteHashes.json"), Json.Serialize(remoteModFiles));
-
         Logger.LogDebug("Comparing file hashes");
         try
         {
@@ -521,7 +511,7 @@ public class Plugin : BaseUnityPlugin
                 addedFiles[syncPath.path]
                     .Select(file => $"ADDED {file}")
                     .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
-                    .Concat(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
+                    .Concat(configDeleteRemovedFiles.Value || syncPath.enforced ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
                     .Concat(createdDirectories[syncPath.path].Select(file => $"CREATED {file}/"))
             )
             .ToList();
@@ -544,7 +534,9 @@ public class Plugin : BaseUnityPlugin
         _noRestart ??= EnabledSyncPaths
             .Where(syncPath => !syncPath.restartRequired)
             .SelectMany(syncPath =>
-                addedFiles[syncPath.path].Concat(updatedFiles[syncPath.path]).Concat(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path] : [])
+                addedFiles[syncPath.path]
+                    .Concat(updatedFiles[syncPath.path])
+                    .Concat((configDeleteRemovedFiles.Value || syncPath.enforced) ? removedFiles[syncPath.path] : [])
             )
             .ToList();
 
