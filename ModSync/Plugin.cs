@@ -27,6 +27,7 @@ public class Plugin : BaseUnityPlugin
     private static readonly string MODSYNC_DIR = Path.Combine(Directory.GetCurrentDirectory(), "ModSync_Data");
     private static readonly string PENDING_UPDATES_DIR = Path.Combine(MODSYNC_DIR, "PendingUpdates");
     private static readonly string PREVIOUS_SYNC_PATH = Path.Combine(MODSYNC_DIR, "PreviousSync.json");
+    private static readonly string LOCAL_HASHES_PATH = Path.Combine(MODSYNC_DIR, "LocalHashes.json");
     private static readonly string REMOVED_FILES_PATH = Path.Combine(MODSYNC_DIR, "RemovedFiles.json");
     private static readonly string LOCAL_EXCLUSIONS_PATH = Path.Combine(MODSYNC_DIR, "Exclusions.json");
     private static readonly string UPDATER_PATH = Path.Combine(Directory.GetCurrentDirectory(), "ModSync.Updater.exe");
@@ -429,6 +430,8 @@ public class Plugin : BaseUnityPlugin
             exclusions.Select(Glob.Create).ToList(),
             localExclusions.Select(Glob.Create).ToList()
         );
+
+        VFS.WriteTextFile(LOCAL_HASHES_PATH, Json.Serialize(localModFiles));
 
         Logger.LogDebug("Fetching remote file hashes");
         try
