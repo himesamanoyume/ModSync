@@ -49,15 +49,13 @@ This project allows clients to easily add/update/remove mods, keeping them in sy
 
 ## Configuration
 
-For information about modifying the ModSync config, see [the configuration page](./wiki/Configuration)
+For information about modifying the ModSync config, see [the configuration page on the wiki](https://github.com/c-orter/ModSync/wiki/Configuration)
 
 ## Frequently Asked Questions
 
-Checkout some [frequently asked questions](./wiki/FAQ) on the wiki!
+Checkout some [frequently asked questions](https://github.com/c-orter/ModSync/wiki/FAQ) on the wiki!
 
-## How Sync Works
-
-[How Sync Works](./wiki/How-Sync-Works)
+## [How Sync Works](https://github.com/c-orter/ModSync/wiki/How-Sync-Works)
 
 If you are looking to understand how syncing works, take a look at the technical writeup on the wiki. It goes into detail on the different stages of the sync process
 and different modes of operation.
