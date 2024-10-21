@@ -6,13 +6,13 @@ using System.Text.RegularExpressions;
 
 public static partial class Glob
 {
-    private static readonly Regex DotRE = DotRegex();
+    private static readonly Regex DotRE = new(@"\.", RegexOptions.Compiled);
     private const string DotPattern = @"\.";
 
-    private static readonly Regex RestRE = RestRegex();
+    private static readonly Regex RestRE = new(@"\*\*$", RegexOptions.Compiled);
     private const string RestPattern = "(.+)";
 
-    private static readonly Regex GlobRE = GlobRegex();
+    private static readonly Regex GlobRE = new(@"(?:\*\*\/|\*\*|\*)", RegexOptions.Compiled);
     private static readonly Dictionary<string, string> GlobPatterns =
         new()
         {
@@ -47,13 +47,4 @@ public static partial class Glob
         var pattern = glob is string[] globArray ? Join(globArray) : Replace((string)glob);
         return new Regex($"^{pattern}", RegexOptions.Compiled);
     }
-
-    [GeneratedRegex(@"(?:\*\*\/|\*\*|\*)", RegexOptions.Compiled)]
-    private static partial Regex GlobRegex();
-
-    [GeneratedRegex(@"\*\*$", RegexOptions.Compiled)]
-    private static partial Regex RestRegex();
-
-    [GeneratedRegex(@"\.", RegexOptions.Compiled)]
-    private static partial Regex DotRegex();
 }
