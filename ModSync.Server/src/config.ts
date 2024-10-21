@@ -60,15 +60,16 @@ const DEFAULT_CONFIG = `{
 		// ADD MISSING QUEST WEAPON REQUIREMENTS
 		"user/mods/zz_guiltyman-addmissingquestweaponrequirements/log.log",
 		"user/mods/zz_guiltyman-addmissingquestweaponrequirements/user/logs",
+		// Corter ModSync
+		"BepInEx/patchers/Corter-ModSync-Patcher.dll",
+		"**/*.nosync",
+		"**/*.nosync.txt"
 		// General server mods
 		"user/mods/**/.git",
 		"user/mods/**/node_modules",
 		"user/mods/**/*.js",
 		"user/mods/**/*.js.map",
-		// ModSync
-		"BepInEx/patchers/Corter-ModSync-Patcher.dll",
-		"**/*.nosync",
-		"**/*.nosync.txt"
+		"**/*:Zone.Identifier"
 	]
 }`;
 
