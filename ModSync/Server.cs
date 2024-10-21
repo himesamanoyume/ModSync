@@ -11,6 +11,8 @@ using SPT.Common.Utils;
 
 namespace ModSync;
 
+using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
+
 public class Server(Version pluginVersion)
 {
     private async Task<string> GetJson(string path)
@@ -91,9 +93,9 @@ public class Server(Version pluginVersion)
         return Json.Deserialize<List<string>>(await GetJson("/modsync/exclusions"));
     }
 
-    public async Task<Dictionary<string, Dictionary<string, ModFile>>> GetRemoteModFileHashes(List<SyncPath> syncPaths)
+    public async Task<SyncPathModFiles> GetRemoteModFileHashes(List<SyncPath> syncPaths)
     {
-        return Json.Deserialize<Dictionary<string, Dictionary<string, ModFile>>>(
+        return Json.Deserialize<SyncPathModFiles>(
                 await GetJson($"/modsync/hashes?path={string.Join("&path=", syncPaths.Select(path => Uri.EscapeUriString(path.path.Replace(@"\", "/"))))}")
             )
             .ToDictionary(

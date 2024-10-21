@@ -9,13 +9,12 @@ using ModSync.Utility;
 
 namespace ModSync;
 
+using SyncPathFileList = Dictionary<string, List<string>>;
+using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
+
 public static class Sync
 {
-    public static Dictionary<string, List<string>> GetAddedFiles(
-        List<SyncPath> syncPaths,
-        Dictionary<string, Dictionary<string, ModFile>> localModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> remoteModFiles
-    )
+    public static SyncPathFileList GetAddedFiles(List<SyncPath> syncPaths, SyncPathModFiles localModFiles, SyncPathModFiles remoteModFiles)
     {
         return syncPaths
             .Select(syncPath => new KeyValuePair<string, List<string>>(
@@ -29,11 +28,11 @@ public static class Sync
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
-    public static Dictionary<string, List<string>> GetUpdatedFiles(
+    public static SyncPathFileList GetUpdatedFiles(
         List<SyncPath> syncPaths,
-        Dictionary<string, Dictionary<string, ModFile>> localModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> remoteModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> previousRemoteModFiles
+        SyncPathModFiles localModFiles,
+        SyncPathModFiles remoteModFiles,
+        SyncPathModFiles previousRemoteModFiles
     )
     {
         return syncPaths
@@ -58,11 +57,11 @@ public static class Sync
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
-    public static Dictionary<string, List<string>> GetRemovedFiles(
+    public static SyncPathFileList GetRemovedFiles(
         List<SyncPath> syncPaths,
-        Dictionary<string, Dictionary<string, ModFile>> localModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> remoteModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> previousRemoteModFiles
+        SyncPathModFiles localModFiles,
+        SyncPathModFiles remoteModFiles,
+        SyncPathModFiles previousRemoteModFiles
     )
     {
         return syncPaths
@@ -86,11 +85,7 @@ public static class Sync
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
-    public static Dictionary<string, List<string>> GetCreatedDirectories(
-        List<SyncPath> syncPaths,
-        Dictionary<string, Dictionary<string, ModFile>> localModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> remoteModFiles
-    )
+    public static SyncPathFileList GetCreatedDirectories(List<SyncPath> syncPaths, SyncPathModFiles localModFiles, SyncPathModFiles remoteModFiles)
     {
         return syncPaths
             .Select(syncPath =>
@@ -127,7 +122,7 @@ public static class Sync
             .ToList();
     }
 
-    public static async Task<Dictionary<string, Dictionary<string, ModFile>>> HashLocalFiles(
+    public static async Task<SyncPathModFiles> HashLocalFiles(
         string basePath,
         List<SyncPath> syncPaths,
         List<Regex> remoteExclusions,
@@ -138,7 +133,7 @@ public static class Sync
         var processedFiles = new HashSet<string>();
         var limitOpenFiles = new SemaphoreSlim(1024, 1024);
 
-        var results = new Dictionary<string, Dictionary<string, ModFile>>();
+        var results = new SyncPathModFiles();
 
         foreach (var syncPath in syncPaths)
         {
@@ -192,13 +187,13 @@ public static class Sync
 
     public static void CompareModFiles(
         List<SyncPath> syncPaths,
-        Dictionary<string, Dictionary<string, ModFile>> localModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> remoteModFiles,
-        Dictionary<string, Dictionary<string, ModFile>> previousSync,
-        out Dictionary<string, List<string>> addedFiles,
-        out Dictionary<string, List<string>> updatedFiles,
-        out Dictionary<string, List<string>> removedFiles,
-        out Dictionary<string, List<string>> createdDirectories
+        SyncPathModFiles localModFiles,
+        SyncPathModFiles remoteModFiles,
+        SyncPathModFiles previousSync,
+        out SyncPathFileList addedFiles,
+        out SyncPathFileList updatedFiles,
+        out SyncPathFileList removedFiles,
+        out SyncPathFileList createdDirectories
     )
     {
         addedFiles = GetAddedFiles(syncPaths, localModFiles, remoteModFiles);
