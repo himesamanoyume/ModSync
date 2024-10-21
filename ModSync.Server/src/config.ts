@@ -63,7 +63,7 @@ const DEFAULT_CONFIG = `{
 		// Corter ModSync
 		"BepInEx/patchers/Corter-ModSync-Patcher.dll",
 		"**/*.nosync",
-		"**/*.nosync.txt"
+		"**/*.nosync.txt",
 		// General server mods
 		"user/mods/**/.git",
 		"user/mods/**/node_modules",
@@ -95,7 +95,7 @@ export class ConfigUtil {
 		private jsonUtil: JsonUtil,
 		private modImporter: PreSptModLoader,
 		private logger: ILogger,
-	) {}
+	) { }
 
 	/**
 	 * @throws {Error} If the config file does not exist
