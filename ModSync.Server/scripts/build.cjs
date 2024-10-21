@@ -1,5 +1,4 @@
 const { config, rm, mkdir, cp, pushd, popd, exec, sed } = require("shelljs");
-const { globSync } = require("glob");
 const { readFileSync } = require("node:fs");
 const { gzipSync } = require("node:zlib");
 
@@ -21,10 +20,6 @@ const wasmBundle = gzipSync(readFileSync("pkg/metrohash_bg.wasm")).toString(
 );
 popd("-q");
 
-for (const file of globSync("**/*.ts")) {
-	rm(file);
-}
-
 sed(
 	"-i",
 	/.*\/\* WASM Bundle \*\/.*$/gm,
@@ -44,7 +39,7 @@ exec(`dotnet publish -c ${configuration} -r win-x64`);
 popd("-q");
 
 cp(
-	`../ModSync/bin/${configuration}/Corter-ModSync.dll`,
+	`../ModSync/bin/${configuration}/net472/Corter-ModSync.dll`,
 	"../dist/BepInEx/plugins/",
 );
 cp(
