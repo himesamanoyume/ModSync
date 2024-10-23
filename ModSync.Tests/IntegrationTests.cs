@@ -280,6 +280,8 @@ public class IntegrationTests
     {
         var testPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..\..\..\IntegrationTests", "CreateEmptyDirectories"));
 
+        Directory.CreateDirectory(Path.Combine(testPath, @"remote\plugins\TestMod\SuperImportantEmptyFolder"));
+
         List<string> downloadedFiles = [];
 
         RunPlugin(

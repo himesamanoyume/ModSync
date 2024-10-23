@@ -24,6 +24,9 @@ public class MigratorTests
         var sourceDirectory = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..\..\..\MigratorTests", "NoModSync"));
         var testDirectory = TestUtils.GetTemporaryDirectory();
 
+        if (!Directory.Exists(sourceDirectory))
+            Directory.CreateDirectory(sourceDirectory);
+
         CopyFilesRecursively(sourceDirectory, testDirectory);
 
         List<SyncPath> syncPaths = [new(@"BepInEx\plugins"), new(@"BepInEx\patchers")];
