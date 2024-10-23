@@ -141,7 +141,7 @@ public static class Sync
 
             results[syncPath.path] = (
                 await Task.WhenAll(
-                    GetFilesInDirectory(basePath, path, remoteExclusions.Concat(syncPath.enforced ? [] : localExclusions).ToList())
+                    GetFilesInDirectory(basePath, path, [.. remoteExclusions, .. syncPath.enforced ? [] : localExclusions])
                         .Where((file) => !processedFiles.Contains(file))
                         .AsParallel()
                         .Select(
