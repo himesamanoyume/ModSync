@@ -20,7 +20,7 @@ describe("syncTests", async () => {
 			"file3.dll.nosync.txt": "",
 			ModName: {
 				IncludedSubdir: {
-					"aFileToInclude": "Something",	
+					"aFileToInclude": "Something",
 				},
 				"mod_name.dll": "Test content 4",
 				".nosync": "",
@@ -80,7 +80,7 @@ describe("syncTests", async () => {
 		it("should hash mod files", async () => {
 			const hashes = await syncUtil.hashModFiles(config.syncPaths);
 
-			expect("plugins\\OtherMod\\other_mod.dll" in hashes["plugins"]).toBe(
+			expect("plugins\\OtherMod\\other_mod.dll" in hashes.plugins).toBe(
 				true,
 			);
 
@@ -116,6 +116,35 @@ describe("syncTests", async () => {
 			expect(hashes).toMatchSnapshot();
 		});
 
+		it("previous syncpaths should override later ones", async () => {
+			const newConfig = new Config(
+				[
+					{
+						path: "plugins/OtherMod",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+					},
+					{
+						path: "plugins",
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+					},
+				],
+				config.exclusions,
+			);
+
+			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
+
+			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+
+			expect(hashes["plugins\\OtherMod"]).toHaveProperty("plugins\\OtherMod\\other_mod.dll");
+			expect(hashes.plugins).not.toHaveProperty("plugins\\OtherMod\\other_mod.dll");
+		});
+
 		it("should correctly ignore folders that do not exist", async () => {
 			const newConfig = new Config(
 				[
@@ -137,13 +166,12 @@ describe("syncTests", async () => {
 				config.exclusions,
 			);
 
-			const vfs = new VFS();
 			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
 
 			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
 
-			expect(Object.keys(hashes["plugins"])).toContain("plugins\\file1.dll");
-			expect(Object.keys(hashes["plugins"])).toContain(
+			expect(Object.keys(hashes.plugins)).toContain("plugins\\file1.dll");
+			expect(Object.keys(hashes.plugins)).toContain(
 				"plugins\\OtherMod\\other_mod.dll",
 			);
 			expect(logger.warning).toHaveBeenCalledWith(
@@ -172,13 +200,12 @@ describe("syncTests", async () => {
 				config.exclusions,
 			);
 
-			const vfs = new VFS();
 			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
 
 			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
 
-			expect(Object.keys(hashes["plugins"])).toContain("plugins\\file1.dll");
-			expect(Object.keys(hashes["plugins"])).toContain(
+			expect(Object.keys(hashes.plugins)).toContain("plugins\\file1.dll");
+			expect(Object.keys(hashes.plugins)).toContain(
 				"plugins\\OtherMod\\other_mod.dll",
 			);
 
@@ -197,7 +224,7 @@ describe("syncTests", async () => {
 		it("should correctly include empty folders", async () => {
 			const hashes = await syncUtil.hashModFiles(config.syncPaths);
 
-			expect("plugins\\OtherMod\\sounds" in hashes["plugins"]).toBe(true);
+			expect("plugins\\OtherMod\\sounds" in hashes.plugins).toBe(true);
 
 			expect(hashes).toMatchSnapshot();
 		});
@@ -215,7 +242,7 @@ describe("syncTests", async () => {
 
 			expect(hashes).toMatchSnapshot();
 		});
-		
+
 		it("Should only hash a given file for one syncPath", async () => {
 			const hashes = await syncUtil.hashModFiles([
 				{
@@ -237,7 +264,7 @@ describe("syncTests", async () => {
 			expect(Object.values(hashes).flatMap(Object.keys).filter((path) => path === "plugins\\file1.dll").length).toBe(1);
 			expect(hashes).toMatchSnapshot();
 		});
-		
+
 		it("Exclusions can be overridden by more specific syncPaths", async () => {
 			const newConfig = new Config(
 				[
@@ -255,7 +282,7 @@ describe("syncTests", async () => {
 
 			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
 			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
-			
+
 
 			expect(hashes["plugins\\ModName\\IncludedSubdir"]).toHaveProperty("plugins\\ModName\\IncludedSubdir\\aFileToInclude");
 			expect(hashes).toMatchSnapshot();
