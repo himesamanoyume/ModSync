@@ -39,7 +39,7 @@ describe("Config", () => {
 	});
 
 	it("should correctly identify excluded paths", () => {
-	
+
 		expect(config.isExcluded("plugins/test.dll")).toBe(false);
 		expect(config.isExcluded("plugins/banana/node_modules")).toBe(true);
 		expect(config.isExcluded("plugins/banana/test.js")).toBe(true);
@@ -96,31 +96,43 @@ describe("ConfigUtil", () => {
 			mock<ILogger>(),
 		).load();
 
+		expect(config.syncPaths).toMatchSnapshot();
+
+		expect(config.exclusions).toEqual(["plugins/**/node_modules"]);
+	});
+
+	it("Should always include ModSync.Updater.exe in syncPaths", async () => {
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
+					"syncPaths": [],
+					// Exclusions for commonly used SPT mods
+					"exclusions": [
+						"plugins/**/node_modules"
+					]
+				}`,
+				plugins: {},
+				mods: {},
+			},
+			process.cwd(),
+		);
+
+		const config = await new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			mock<ILogger>(),
+		).load();
+
 		expect(config.syncPaths).toEqual([
 			{
 				enabled: true,
-				enforced: false,
-				path: "doesnotexist",
-				restartRequired: true,
-				silent: false,
-			},
-			{
-				enabled: true,
-				enforced: false,
-				path: "plugins",
-				restartRequired: true,
-				silent: false,
-			},
-			{
-				enabled: false,
-				enforced: false,
-				path: "mods",
-				restartRequired: true,
-				silent: false,
-			},
+				enforced: true,
+				path: "ModSync.Updater.exe",
+				restartRequired: false,
+				silent: true,
+			}
 		]);
-
-		expect(config.exclusions).toEqual(["plugins/**/node_modules"]);
 	});
 
 	it("should reject syncPath object without path", () => {

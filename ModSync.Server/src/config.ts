@@ -28,11 +28,6 @@ const DEFAULT_CONFIG = `{
 			"enabled": false,
 			"path": "user/mods",
 			"restartRequired": false
-		},
-		{ 
-			"path": "ModSync.Updater.exe",
-			"enforced": true,
-			"restartRequired": false
 		}
 	],
 	"exclusions": [
@@ -165,16 +160,31 @@ export class ConfigUtil {
 		this.validateConfig(rawConfig);
 
 		return new Config(
-			rawConfig.syncPaths
-				.map((syncPath) => ({
+			[
+				{
 					enabled: true,
-					// Not yet implemented
-					enforced: false,
-					silent: false,
+					enforced: true,
+					silent: true,
+					restartRequired: false,
+					path: "ModSync.Updater.exe",
+				},
+				{
+					enabled: true,
+					enforced: true,
+					silent: true,
 					restartRequired: true,
-					...(typeof syncPath === "string" ? { path: syncPath } : syncPath),
-				}))
-				.sort((a, b) => b.path.length - a.path.length),
+					path: "BepInEx/plugins/Corter-ModSync.dll",
+				},
+				...rawConfig.syncPaths
+					.map((syncPath) => ({
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+						...(typeof syncPath === "string" ? { path: syncPath } : syncPath),
+					}))
+					.sort((a, b) => b.path.length - a.path.length),
+			],
 			rawConfig.exclusions,
 		);
 	}

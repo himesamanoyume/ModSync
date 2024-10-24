@@ -1,5 +1,38 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`ConfigUtil > should load config 1`] = `
+[
+  {
+    "enabled": true,
+    "enforced": false,
+    "path": "doesnotexist",
+    "restartRequired": true,
+    "silent": false,
+  },
+  {
+    "enabled": true,
+    "enforced": false,
+    "path": "plugins",
+    "restartRequired": true,
+    "silent": false,
+  },
+  {
+    "enabled": false,
+    "enforced": false,
+    "path": "mods",
+    "restartRequired": true,
+    "silent": false,
+  },
+  {
+    "enabled": true,
+    "enforced": true,
+    "path": "ModSync.Updater.exe",
+    "restartRequired": false,
+    "silent": true,
+  },
+]
+`;
+
 exports[`ConfigUtil > should reject absolute paths 1`] = `[Error: Corter-ModSync: SyncPaths must be relative to SPT server root. Invalid path '/etc/shadow']`;
 
 exports[`ConfigUtil > should reject invalid JSON 1`] = `[Error: Corter-ModSync: config.jsonc 'syncPaths' is not an array. Please verify your config is correct and try again.]`;
