@@ -124,15 +124,7 @@ describe("ConfigUtil", () => {
 			mock<ILogger>(),
 		).load();
 
-		expect(config.syncPaths).toEqual([
-			{
-				enabled: true,
-				enforced: true,
-				path: "ModSync.Updater.exe",
-				restartRequired: false,
-				silent: true,
-			}
-		]);
+		expect(config.syncPaths).toMatchSnapshot();
 	});
 
 	it("should reject syncPath object without path", () => {

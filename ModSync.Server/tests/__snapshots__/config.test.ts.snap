@@ -1,7 +1,40 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`ConfigUtil > Should always include ModSync.Updater.exe in syncPaths 1`] = `
+[
+  {
+    "enabled": true,
+    "enforced": true,
+    "path": "ModSync.Updater.exe",
+    "restartRequired": false,
+    "silent": true,
+  },
+  {
+    "enabled": true,
+    "enforced": true,
+    "path": "BepInEx/plugins/Corter-ModSync.dll",
+    "restartRequired": true,
+    "silent": true,
+  },
+]
+`;
+
 exports[`ConfigUtil > should load config 1`] = `
 [
+  {
+    "enabled": true,
+    "enforced": true,
+    "path": "ModSync.Updater.exe",
+    "restartRequired": false,
+    "silent": true,
+  },
+  {
+    "enabled": true,
+    "enforced": true,
+    "path": "BepInEx/plugins/Corter-ModSync.dll",
+    "restartRequired": true,
+    "silent": true,
+  },
   {
     "enabled": true,
     "enforced": false,
@@ -22,13 +55,6 @@ exports[`ConfigUtil > should load config 1`] = `
     "path": "mods",
     "restartRequired": true,
     "silent": false,
-  },
-  {
-    "enabled": true,
-    "enforced": true,
-    "path": "ModSync.Updater.exe",
-    "restartRequired": false,
-    "silent": true,
   },
 ]
 `;
