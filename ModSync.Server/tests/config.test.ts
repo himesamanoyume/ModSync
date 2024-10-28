@@ -12,7 +12,19 @@ import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import { mock } from "vitest-mock-extended";
 import path from "node:path";
 
-vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
+vi.mock("node:fs", async () => {
+	const path = await vi.importActual("node:path");
+	const { readFileSync } = await vi.importActual("node:fs");
+	const { fs } = await vi.importActual("memfs");
+
+	// @ts-expect-error Vitest types aren't exactly perfect
+	const wasmPath = path.resolve(__dirname, "../src/utility/metrohash.wasm");
+
+	// @ts-expect-error Vitest types aren't exactly perfect
+	fs.writeFileSync(wasmPath, readFileSync(wasmPath))
+
+	return fs;
+});
 
 describe("Config", () => {
 	let config: Config;

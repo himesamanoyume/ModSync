@@ -1,5 +1,5 @@
 const { config, rm, mkdir, cp, pushd, popd, exec, sed } = require("shelljs");
-const { readFileSync } = require("node:fs");
+const { writeFileSync, readFileSync } = require("node:fs");
 const { gzipSync } = require("node:zlib");
 
 const packageJson = require("../package.json");
@@ -11,24 +11,15 @@ rm("-rf", "../dist");
 mkdir("-p", "../dist/user/mods/Corter-ModSync/src");
 mkdir("-p", "../dist/BepInEx/plugins");
 
+cp("package.json", "../dist/user/mods/Corter-ModSync/");
+cp("-r", "src/*", "../dist/user/mods/Corter-ModSync/src");
+
 pushd("-q", "../ModSync.MetroHash");
 exec(
 	"wasm-pack build --release --target nodejs --out-name metrohash --no-pack --manifest-path Cargo.toml -Z build-std=panic_abort,std -Z build-std-features=optimize_for_size,panic_immediate_abort",
 );
-const wasmBundle = gzipSync(readFileSync("pkg/metrohash_bg.wasm")).toString(
-	"base64",
-);
+cp("pkg/metrohash_bg.wasm", "../dist/user/mods/Corter-ModSync/src/utility/metrohash.wasm");
 popd("-q");
-
-sed(
-	"-i",
-	/.*\/\* WASM Bundle \*\/.*$/gm,
-	`/* WASM Bundle */ const zipped = Buffer.from("${wasmBundle}", "base64");`,
-	"src/utility/metrohash.ts",
-);
-
-cp("package.json", "../dist/user/mods/Corter-ModSync/");
-cp("-r", "src/*", "../dist/user/mods/Corter-ModSync/src");
 
 pushd("-q", "../");
 exec(`dotnet build -c ${configuration}`);

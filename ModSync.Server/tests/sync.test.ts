@@ -8,7 +8,16 @@ import type { VFS as IVFS } from "@spt/utils/VFS";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import { mock } from "vitest-mock-extended";
 
-vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
+vi.mock("node:fs", async () => {
+	const { readFileSync } = await vi.importActual<typeof import("node:fs")>("node:fs");
+	const { fs } = await vi.importActual<typeof import("memfs")>("memfs");
+
+	return {
+		...fs,
+		readFileSync: vi.fn((path, options) => path.endsWith(".wasm") ? readFileSync("../ModSync.MetroHash/pkg/metrohash_bg.wasm") : fs.readFileSync(path, options)),
+	}
+});
+
 
 describe("syncTests", async () => {
 	const directoryStructure = {

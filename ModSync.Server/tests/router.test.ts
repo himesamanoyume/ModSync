@@ -1,4 +1,4 @@
-﻿import { expect, beforeEach, describe, it, vi } from "vitest";
+﻿import { expect, beforeEach, describe, it, vi, beforeAll } from "vitest";
 import { fs, vol } from "memfs";
 
 import { Router } from "../src/router";
@@ -15,7 +15,15 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpError } from "../src/utility/misc";
 import type { HttpServerHelper } from "@spt/helpers/HttpServerHelper";
 
-vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
+vi.mock("node:fs", async () => {
+	const { readFileSync } = await vi.importActual<typeof import("node:fs")>("node:fs");
+	const { fs } = await vi.importActual<typeof import("memfs")>("memfs");
+
+	return {
+		...fs,
+		readFileSync: vi.fn((path, options) => path.endsWith(".wasm") ? readFileSync("../ModSync.MetroHash/pkg/metrohash_bg.wasm") : fs.readFileSync(path, options)),
+	}
+});
 
 describe("router", async () => {
 	const config = new Config(
