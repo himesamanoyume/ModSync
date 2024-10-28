@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ModSync.Utility;
 using Newtonsoft.Json.Linq;
 using SPT.Common.Utils;
 
@@ -45,13 +46,16 @@ public class Migrator(string baseDir)
         return Version.Parse("0.0.0");
     }
 
-    private void Cleanup()
+    private void Cleanup(Version pluginVersion)
     {
         if (Directory.Exists(MODSYNC_DIR))
             Directory.Delete(MODSYNC_DIR, true);
 
         foreach (var file in CLEANUP_FILES.Where(File.Exists))
             File.Delete(file);
+
+        Directory.CreateDirectory(MODSYNC_DIR);
+        File.WriteAllText(VERSION_PATH, pluginVersion.ToString());
     }
 
     public void TryMigrate(Version pluginVersion, List<SyncPath> syncPaths)
@@ -60,22 +64,25 @@ public class Migrator(string baseDir)
 
         if (oldVersion == Version.Parse("0.0.0"))
         {
-            Cleanup();
+            Cleanup(pluginVersion);
+            return;
         }
-        else if (oldVersion < Version.Parse("0.8.0") && oldVersion != pluginVersion)
+
+        if (oldVersion < Version.Parse("0.8.0"))
         {
             var persist = JObject.Parse(File.ReadAllText(MODSYNC_PATH));
 
             if (!persist.ContainsKey("previousSync") || persist["previousSync"] == null)
             {
-                Cleanup();
+                Cleanup(pluginVersion);
                 return;
             }
 
             var oldPreviousSync = (JObject)persist["previousSync"];
-            var newPreviousSync = syncPaths
-                .Select(syncPath => new KeyValuePair<string, Dictionary<string, ModFile>>(syncPath.path, []))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            var newPreviousSync = new JObject();
+
+            foreach (var syncPath in syncPaths)
+                newPreviousSync.Add(syncPath.path, new JObject());
 
             foreach (var property in oldPreviousSync.Properties())
             {
@@ -93,7 +100,7 @@ public class Migrator(string baseDir)
                     continue;
                 }
 
-                newPreviousSync[syncPath.path][property.Name] = new ModFile(modFile["crc"]!.Value<uint>(), modFile["nosync"]?.Value<bool>() ?? false);
+                (newPreviousSync.Property(syncPath.path)!.Value as JObject)!.Add(property.Name, new JObject() { ["crc"] = modFile["crc"]!.Value<uint>(), });
             }
 
             if (!Directory.Exists(MODSYNC_DIR))
@@ -104,6 +111,27 @@ public class Migrator(string baseDir)
 
             foreach (var file in CLEANUP_FILES.Where(File.Exists))
                 File.Delete(file);
+        }
+
+        if (oldVersion < Version.Parse("0.9.0"))
+        {
+            var previousSync = JObject.Parse(File.ReadAllText(PREVIOUS_SYNC_PATH));
+
+            foreach (var property in previousSync.Properties())
+            {
+                foreach (var file in (property.Value as JObject)!.Properties())
+                {
+                    var fileObject = (file.Value as JObject)!;
+
+                    fileObject.Property("nosync")?.Remove();
+                    fileObject.Property("crc")?.Remove();
+                    fileObject.Add("hash", "");
+                    fileObject.Add("directory", false);
+                }
+            }
+
+            File.WriteAllText(PREVIOUS_SYNC_PATH, Json.Serialize(previousSync));
+            File.WriteAllText(VERSION_PATH, pluginVersion.ToString());
         }
         else if (oldVersion.Minor == pluginVersion.Minor && oldVersion != pluginVersion)
         {

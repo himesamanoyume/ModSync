@@ -1,26 +1,26 @@
 ﻿import type { VFS } from "@spt/utils/VFS";
 import path from "node:path";
-import { crc32Init, crc32Update, crc32Final } from "./crc";
+import { hashFile } from "./utility/imoHash";
 import type { Config, SyncPath } from "./config";
-import {HttpError, Semaphore, winPath} from "./utility";
+import { HttpError, winPath } from "./utility/misc";
+import { Semaphore } from "./utility/semaphore";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
-import { createReadStream } from "node:fs";
 
 type ModFile = {
-	crc: number;
-	nosync: boolean;
+	hash: string;
+	directory: boolean;
 };
 
 export class SyncUtil {
 	private limiter = new Semaphore(1024);
-	
+
 	constructor(
 		private vfs: VFS,
 		private config: Config,
 		private logger: ILogger,
 	) {}
 
-	private async getFilesInDir(dir: string): Promise<[string, boolean][]> {
+	private async getFilesInDir(baseDir: string, dir: string): Promise<string[]> {
 		if (!this.vfs.exists(dir)) {
 			this.logger.warning(
 				`Corter-ModSync: Directory '${dir}' does not exist, will be ignored.`,
@@ -29,87 +29,52 @@ export class SyncUtil {
 		}
 
 		const stats = await this.vfs.statPromisify(dir);
-		if (stats.isFile())
-			return [
-				[
-					dir,
-					this.config.isExcluded(dir) ||
-						this.vfs.exists(path.join(dir, ".nosync")) ||
-						this.vfs.exists(path.join(dir, ".nosync.txt")),
-				],
-			];
+		if (stats.isFile()) return [dir];
 
-		const nosyncDir =
-			this.config.isExcluded(dir) ||
-			this.vfs.exists(path.join(dir, ".nosync")) ||
-			this.vfs.exists(path.join(dir, ".nosync.txt"));
+		const files: string[] = [];
+		for (const fileName of this.vfs.getFiles(dir)) {
+			const file = path.join(dir, fileName);
+			
+			if (this.config.isExcluded(file)) continue;
 
-		return (
-			await Promise.all(
-				this.vfs
-					.getFiles(dir)
-					.filter(
-						(file) =>
-							!file.endsWith(".nosync") && !file.endsWith(".nosync.txt"),
-					)
-					.map(
-						async (file): Promise<[string, boolean]> => [
-							path.join(dir, file),
-							nosyncDir ||
-								this.config.isExcluded(path.join(dir, file)) ||
-								this.vfs.exists(`${path.join(dir, file)}.nosync`) ||
-								this.vfs.exists(`${path.join(dir, file)}.nosync.txt`),
-						],
-					),
-			)
-		).concat(
-			(
-				await Promise.all(
-					this.vfs
-						.getDirs(dir)
-						.map((subDir) => this.getFilesInDir(path.join(dir, subDir))),
-				)
-			)
-				.flat()
-				.map(([child, nosync]): [string, boolean] => [
-					child,
-					nosyncDir || nosync,
-				]),
-		);
+			files.push(file);
+		}
+
+		for (const dirName of this.vfs.getDirs(dir)) {
+			const subDir = path.join(dir, dirName);
+
+			if (this.config.isExcluded(subDir)) continue;
+			
+			const subFiles = await this.getFilesInDir(baseDir, subDir);
+			if (!subFiles.length) files.push(subDir)
+			
+			files.push(...subFiles);
+		}
+
+		if (stats.isDirectory() && files.length === 0) files.push(dir);
+
+		return files;
 	}
 
 	private async buildModFile(
 		file: string,
 		// biome-ignore lint/correctness/noEmptyPattern: <explanation>
 		{}: Required<SyncPath>,
-		nosync: boolean,
 	): Promise<ModFile> {
-		try {
-			let crc = 0;
-			if (!nosync) {
-				const lock = await this.limiter.acquire();
-				
-				crc = await new Promise<number>((resolve, reject) => {
-					let crc = crc32Init();
+		const stats = await this.vfs.statPromisify(file);
+		if (stats.isDirectory()) return { hash: "", directory: true };
 
-					createReadStream(file)
-						.on("error", reject)
-						.on("data", (data: Buffer) => {
-							crc = crc32Update(crc, data);
-						})
-						.on("end", () => {
-							resolve(crc32Final(crc));
-						});
-				});
-				
-				lock.release();
-			}
-			
+		try {
+			const lock = await this.limiter.acquire();
+			const hash = await hashFile(file);
+			lock.release();
+
 			return {
-				nosync,
-				crc,
+				hash,
+				directory: false,
 			};
 		} catch (e) {
+			console.log(e);
 			throw new HttpError(500, `Corter-ModSync: Error reading '${file}'\n${e}`);
 		}
 	}
@@ -117,24 +82,28 @@ export class SyncUtil {
 	public async hashModFiles(
 		syncPaths: Config["syncPaths"],
 	): Promise<Record<string, Record<string, ModFile>>> {
-		return Object.fromEntries(
-			await Promise.all(
-				syncPaths.map(async (syncPath) => [
-					winPath(syncPath.path),
-					Object.fromEntries(
-						await Promise.all(
-							(await this.getFilesInDir(syncPath.path)).map(
-								async ([file, nosync]) =>
-									[
-										winPath(file),
-										await this.buildModFile(file, syncPath, nosync),
-									] as const,
-							),
-						),
-					),
-				]),
-			),
-		);
+		const result: Record<string, Record<string, ModFile>> = {};
+		const processedFiles = new Set<string>();
+
+		const startTime = performance.now();
+		for (const syncPath of syncPaths) {
+			const files = await this.getFilesInDir(syncPath.path, syncPath.path);
+			const filesResult: Record<string, ModFile> = {};
+
+			for (const file of files) {
+				if (processedFiles.has(winPath(file))) continue;
+				
+				filesResult[winPath(file)] = await this.buildModFile(file, syncPath);
+
+				processedFiles.add(winPath(file));
+			}
+
+			result[winPath(syncPath.path)] = filesResult;
+		}
+		
+		this.logger.info(`Corter-ModSync: Hashed ${processedFiles.size} files in ${performance.now() - startTime}ms`);
+
+		return result;
 	}
 
 	/**
@@ -147,20 +116,17 @@ export class SyncUtil {
 		const normalized = path.join(
 			path.normalize(file).replace(/^(\.\.(\/|\\|$))+/, ""),
 		);
-
-		if (
-			!syncPaths.some(
-				({ path: p }) =>
-					!path
-						.relative(path.join(process.cwd(), p), normalized)
-						.startsWith(".."),
-			)
-		)
-			throw new HttpError(
-				400,
-				`Corter-ModSync: Requested file '${file}' is not in an enabled sync path!`,
-			);
-
-		return normalized;
+		
+		for (const syncPath of syncPaths) {
+			const fullPath = path.join(process.cwd(), syncPath.path);
+			if (!path.relative(fullPath, normalized).startsWith("..")) {
+				return normalized;
+			}
+		}
+		
+		throw new HttpError(
+			400,
+			`Corter-ModSync: Requested file '${file}' is not in an enabled sync path!`,
+		);
 	}
 }

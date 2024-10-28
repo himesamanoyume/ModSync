@@ -43,6 +43,16 @@ class Mod implements IPreSptLoadMod {
 			logger.error("Corter-ModSync: Failed to load config!");
 			throw e;
 		}
+
+		if (!vfs.exists("ModSync.Updater.exe")) {
+			Mod.loadFailed = true;
+			logger.error("Corter-ModSync: ModSync.Updater.exe not found! Please ensure ALL files from the release zip are extracted onto the server.");
+		}
+
+		if (!vfs.exists("BepInEx/plugins/Corter-ModSync.dll")) {
+			Mod.loadFailed = true;
+			logger.error("Corter-ModSync: Corter-ModSync.dll not found! Please ensure ALL files from the release zip are extracted onto the server.");
+		}
 	}
 
 	public canHandleOverride(_sessionId: string, req: IncomingMessage): boolean {

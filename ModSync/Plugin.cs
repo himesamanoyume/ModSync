@@ -12,6 +12,7 @@ using BepInEx.Logging;
 using Comfort.Common;
 using EFT.UI;
 using ModSync.UI;
+using ModSync.Utility;
 using SPT.Common.Utils;
 using UnityEngine;
 
@@ -20,14 +21,27 @@ namespace ModSync;
 using SyncPathFileList = Dictionary<string, List<string>>;
 using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
 
-[BepInPlugin("corter.modsync", "Corter ModSync", "0.8.2")]
+[BepInPlugin("corter.modsync", "Corter ModSync", "0.9.0")]
 public class Plugin : BaseUnityPlugin
 {
     private static readonly string MODSYNC_DIR = Path.Combine(Directory.GetCurrentDirectory(), "ModSync_Data");
     private static readonly string PENDING_UPDATES_DIR = Path.Combine(MODSYNC_DIR, "PendingUpdates");
     private static readonly string PREVIOUS_SYNC_PATH = Path.Combine(MODSYNC_DIR, "PreviousSync.json");
+    private static readonly string LOCAL_HASHES_PATH = Path.Combine(MODSYNC_DIR, "LocalHashes.json");
     private static readonly string REMOVED_FILES_PATH = Path.Combine(MODSYNC_DIR, "RemovedFiles.json");
+    private static readonly string LOCAL_EXCLUSIONS_PATH = Path.Combine(MODSYNC_DIR, "Exclusions.json");
     private static readonly string UPDATER_PATH = Path.Combine(Directory.GetCurrentDirectory(), "ModSync.Updater.exe");
+
+    private static readonly List<string> DEDICATED_DEFAULT_EXCLUSIONS =
+    [
+        "BepInEx/plugins/AmandsGraphics.dll",
+        "BepInEx/plugins/MoreCheckmarks",
+        "BepInEx/plugins/kmyuhkyuk-EFTApi",
+        "BepInEx/plugins/DynamicMaps",
+        "BepInEx/plugins/LootValue",
+        "BepInEx/plugins/CactusPie.RamCleanerInterval.dll",
+        "BepInEx/plugins/TYR_DeClutterer.dll",
+    ];
 
     // Configuration
     private Dictionary<string, ConfigEntry<bool>> configSyncPathToggles;
@@ -36,10 +50,12 @@ public class Plugin : BaseUnityPlugin
     private List<SyncPath> syncPaths = [];
     private SyncPathModFiles remoteModFiles = [];
     private SyncPathModFiles previousSync = [];
+    private List<string> localExclusions = [];
 
     private SyncPathFileList addedFiles = [];
     private SyncPathFileList updatedFiles = [];
     private SyncPathFileList removedFiles = [];
+    private SyncPathFileList createdDirectories = [];
 
     private List<Task> downloadTasks = [];
 
@@ -55,16 +71,14 @@ public class Plugin : BaseUnityPlugin
     private int UpdateCount =>
         EnabledSyncPaths
             .Select(syncPath =>
-                addedFiles[syncPath.path].Count + updatedFiles[syncPath.path].Count + (configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Count : 0)
+                addedFiles[syncPath.path].Count
+                + updatedFiles[syncPath.path].Count
+                + (configDeleteRemovedFiles.Value || syncPath.enforced ? removedFiles[syncPath.path].Count : 0)
+                + createdDirectories[syncPath.path].Count
             )
             .Sum();
-    private bool IsDedicated => Chainloader.PluginInfos.ContainsKey("com.fika.dedicated");
-    private List<SyncPath> EnabledSyncPaths => syncPaths.Where(syncPath => configSyncPathToggles[syncPath.path].Value).ToList();
-
-    private SyncPathFileList DownloadFiles =>
-        EnabledSyncPaths
-            .Select(syncPath => new KeyValuePair<string, List<string>>(syncPath.path, addedFiles[syncPath.path].Union(updatedFiles[syncPath.path]).ToList()))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+    private static bool IsDedicated => Chainloader.PluginInfos.ContainsKey("com.fika.dedicated");
+    private List<SyncPath> EnabledSyncPaths => syncPaths.Where(syncPath => configSyncPathToggles[syncPath.path].Value || syncPath.enforced).ToList();
 
     private bool SilentMode =>
         IsDedicated
@@ -73,7 +87,7 @@ public class Plugin : BaseUnityPlugin
             || (
                 addedFiles[syncPath.path].Count == 0
                 && updatedFiles[syncPath.path].Count == 0
-                && (!configDeleteRemovedFiles.Value || removedFiles[syncPath.path].Count == 0)
+                && (!(configDeleteRemovedFiles.Value || syncPath.enforced) || removedFiles[syncPath.path].Count == 0)
             )
         );
 
@@ -83,28 +97,33 @@ public class Plugin : BaseUnityPlugin
             || (
                 addedFiles[syncPath.path].Count == 0
                 && updatedFiles[syncPath.path].Count == 0
-                && (!configDeleteRemovedFiles.Value || removedFiles[syncPath.path].Count == 0)
+                && (!(configDeleteRemovedFiles.Value || syncPath.enforced) || removedFiles[syncPath.path].Count == 0)
             )
         );
 
     private void AnalyzeModFiles(SyncPathModFiles localModFiles)
     {
-        remoteModFiles = server.GetRemoteModFileHashes().ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
-
-        Sync.CompareModFiles(EnabledSyncPaths, localModFiles, remoteModFiles, previousSync, out addedFiles, out updatedFiles, out removedFiles);
+        Sync.CompareModFiles(
+            EnabledSyncPaths,
+            localModFiles,
+            remoteModFiles,
+            previousSync,
+            out addedFiles,
+            out updatedFiles,
+            out removedFiles,
+            out createdDirectories
+        );
 
         Logger.LogInfo($"Found {UpdateCount} files to download.");
         Logger.LogInfo($"- {addedFiles.SelectMany(path => path.Value).Count()} added");
         Logger.LogInfo($"- {updatedFiles.SelectMany(path => path.Value).Count()} updated");
-        if (configDeleteRemovedFiles.Value)
+        if (removedFiles.Count > 0)
             Logger.LogInfo($"- {removedFiles.SelectMany(path => path.Value).Count()} removed");
-        else
-            removedFiles.Clear();
 
         if (UpdateCount > 0)
         {
             if (SilentMode)
-                Task.Run(() => SyncMods(DownloadFiles));
+                Task.Run(() => SyncMods(addedFiles, updatedFiles, createdDirectories));
             else
                 updateWindow.Show();
         }
@@ -114,14 +133,25 @@ public class Plugin : BaseUnityPlugin
 
     private void SkipUpdatingMods()
     {
-        var enforcedDownloads = EnabledSyncPaths
+        var enforcedAddedFiles = EnabledSyncPaths
             .Where(syncPath => syncPath.enforced)
-            .Select(syncPath => new KeyValuePair<string, List<string>>(syncPath.path, addedFiles[syncPath.path].Union(updatedFiles[syncPath.path]).ToList()))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(syncPath => syncPath.path, syncPath => addedFiles[syncPath.path], StringComparer.OrdinalIgnoreCase);
 
-        if (enforcedDownloads.Values.Any(files => files.Count != 0))
+        var enforcedUpdatedFiles = EnabledSyncPaths
+            .Where(syncPath => syncPath.enforced)
+            .ToDictionary(syncPath => syncPath.path, syncPath => updatedFiles[syncPath.path], StringComparer.OrdinalIgnoreCase);
+
+        var enforcedCreatedDirectories = EnabledSyncPaths
+            .Where(syncPath => syncPath.enforced)
+            .ToDictionary(syncPath => syncPath.path, syncPath => createdDirectories[syncPath.path], StringComparer.OrdinalIgnoreCase);
+
+        if (
+            enforcedAddedFiles.Values.Any(files => files.Any())
+            || enforcedUpdatedFiles.Values.Any(files => files.Any())
+            || enforcedCreatedDirectories.Values.Any(files => files.Any())
+        )
         {
-            Task.Run(() => SyncMods(enforcedDownloads));
+            Task.Run(() => SyncMods(enforcedAddedFiles, enforcedUpdatedFiles, enforcedCreatedDirectories));
         }
         else
         {
@@ -130,19 +160,37 @@ public class Plugin : BaseUnityPlugin
         }
     }
 
-    private async Task SyncMods(SyncPathFileList filesToDownload)
+    private async Task SyncMods(SyncPathFileList filesToAdd, SyncPathFileList filesToUpdate, SyncPathFileList directoriesToCreate)
     {
         updateWindow.Hide();
 
         if (!Directory.Exists(PENDING_UPDATES_DIR))
             Directory.CreateDirectory(PENDING_UPDATES_DIR);
 
+        foreach (var syncPath in EnabledSyncPaths)
+        {
+            foreach (var dir in directoriesToCreate[syncPath.path])
+            {
+                try
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError("Failed to create empty directories: " + e);
+                }
+            }
+        }
+
         downloadCount = 0;
         totalDownloadCount = 0;
 
         var limiter = new SemaphoreSlim(8, maxCount: 8);
+        var filesToDownload = EnabledSyncPaths
+            .Select((syncPath) => new KeyValuePair<string, List<string>>(syncPath.path, [.. filesToAdd[syncPath.path], .. filesToUpdate[syncPath.path]]))
+            .ToDictionary((kvp) => kvp.Key, (kvp) => kvp.Value);
 
-        Logger.LogInfo($"Starting download of {filesToDownload.Count} files.");
+        Logger.LogInfo($"Starting download of {UpdateCount} files.");
         downloadTasks = EnabledSyncPaths
             .SelectMany(syncPath =>
                 filesToDownload.TryGetValue(syncPath.path, out var pathFilesToDownload)
@@ -216,7 +264,7 @@ public class Plugin : BaseUnityPlugin
     private void WriteModSyncData()
     {
         VFS.WriteTextFile(PREVIOUS_SYNC_PATH, Json.Serialize(remoteModFiles));
-        if (configDeleteRemovedFiles.Value && EnabledSyncPaths.Any(syncPath => removedFiles[syncPath.path].Count != 0))
+        if (EnabledSyncPaths.Any(syncPath => (configDeleteRemovedFiles.Value || syncPath.enforced) && removedFiles[syncPath.path].Count != 0))
             VFS.WriteTextFile(REMOVED_FILES_PATH, Json.Serialize(removedFiles.SelectMany(kvp => kvp.Value).ToList()));
     }
 
@@ -242,34 +290,43 @@ public class Plugin : BaseUnityPlugin
         Application.Quit();
     }
 
-    private void StartPlugin()
+    private async Task StartPlugin()
     {
         cts = new CancellationTokenSource();
         if (Directory.Exists(PENDING_UPDATES_DIR) || File.Exists(REMOVED_FILES_PATH))
             Logger.LogWarning(
                 "ModSync found previous update. Updater may have failed, check the 'ModSync_Data/Updater.log' for details. Attempting to continue."
             );
-
+        Logger.LogDebug("Fetching server version");
         try
         {
-            var version = server.GetModSyncVersion();
+            var version = await server.GetModSyncVersion();
             Logger.LogInfo($"ModSync found server version: {version}");
             if (version != Info.Metadata.Version.ToString())
-                Logger.LogWarning(
-                    "ModSync server version does not match plugin version. Found server version: " + version + ". Plugin may not work as expected!"
-                );
+                Logger.LogWarning($"ModSync server version does not match plugin version. Found server version: {version}. Plugin may not work as expected!");
         }
         catch (Exception e)
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to request error. Please ensure the server mod is properly installed and try again."
+                $"Could not load {Info.Metadata.Name} due to error requesting server version. Please ensure the server mod is properly installed and try again."
             );
             return;
         }
-
-        syncPaths = server.GetModSyncPaths();
-
+        Logger.LogDebug("Fetching sync paths");
+        try
+        {
+            syncPaths = await server.GetModSyncPaths();
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e);
+            Chainloader.DependencyErrors.Add(
+                $"Could not load {Info.Metadata.Name} due to error requesting sync paths. Please ensure the server mod is properly installed and try again."
+            );
+            return;
+        }
+        Logger.LogDebug("Processing sync paths");
         foreach (var syncPath in syncPaths)
         {
             if (Path.IsPathRooted(syncPath.path))
@@ -288,9 +345,10 @@ public class Plugin : BaseUnityPlugin
                 return;
             }
         }
-
+        Logger.LogDebug("Running migrator");
         new Migrator(Directory.GetCurrentDirectory()).TryMigrate(Info.Metadata.Version, syncPaths);
 
+        Logger.LogDebug("Loading syncPath configs");
         configSyncPathToggles = syncPaths
             .Select(syncPath => new KeyValuePair<string, ConfigEntry<bool>>(
                 syncPath.path,
@@ -307,8 +365,105 @@ public class Plugin : BaseUnityPlugin
             ))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        var localModFiles = Sync.HashLocalFiles(Directory.GetCurrentDirectory(), syncPaths, EnabledSyncPaths);
+        Logger.LogDebug("Loading previous sync data");
+        try
+        {
+            previousSync = VFS.Exists(PREVIOUS_SYNC_PATH) ? Json.Deserialize<SyncPathModFiles>(await VFS.ReadTextFileAsync(PREVIOUS_SYNC_PATH)) : [];
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e);
+            Chainloader.DependencyErrors.Add(
+                $"Could not load {Info.Metadata.Name} due to malformed previous sync data. Please check ModSync_Data/PreviousSync.json for errors or delete it, and try again."
+            );
+            return;
+        }
 
+        Logger.LogDebug("Loading local exclusions");
+        if (IsDedicated && !VFS.Exists(LOCAL_EXCLUSIONS_PATH))
+        {
+            try
+            {
+                VFS.WriteTextFile(LOCAL_EXCLUSIONS_PATH, Json.Serialize(DEDICATED_DEFAULT_EXCLUSIONS));
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+                Chainloader.DependencyErrors.Add(
+                    $"Could not load {Info.Metadata.Name} due to error writing local exclusions file for dedicated client. Please check BepInEx/LogOutput.log for more information."
+                );
+                return;
+            }
+        }
+
+        try
+        {
+            localExclusions = VFS.Exists(LOCAL_EXCLUSIONS_PATH) ? Json.Deserialize<List<string>>(await VFS.ReadTextFileAsync(LOCAL_EXCLUSIONS_PATH)) : [];
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e);
+            Chainloader.DependencyErrors.Add(
+                $"Could not load {Info.Metadata.Name} due to malformed local exclusion data. Please check ModSync_Data/Exclusions.json for errors or delete it, and try again."
+            );
+            return;
+        }
+
+        Logger.LogDebug("Fetching exclusions");
+        List<string> exclusions;
+        try
+        {
+            exclusions = await server.GetModSyncExclusions();
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e);
+            Chainloader.DependencyErrors.Add(
+                $"Could not load {Info.Metadata.Name} due to error requesting exclusions. Please ensure the server mod is properly installed and try again."
+            );
+            return;
+        }
+        Logger.LogDebug("Hashing local files");
+        var localModFiles = await Sync.HashLocalFiles(
+            Directory.GetCurrentDirectory(),
+            EnabledSyncPaths,
+            exclusions.Select(Glob.Create).ToList(),
+            localExclusions.Select(Glob.Create).ToList()
+        );
+
+        VFS.WriteTextFile(LOCAL_HASHES_PATH, Json.Serialize(localModFiles));
+
+        Logger.LogDebug("Fetching remote file hashes");
+        try
+        {
+            var remoteHashes = await server.GetRemoteModFileHashes(EnabledSyncPaths);
+
+            var localExclusionsForRemote = localExclusions.Select(Glob.CreateNoEnd).ToList();
+            remoteModFiles = EnabledSyncPaths
+                .Select(
+                    (syncPath) =>
+                    {
+                        var remotePathHashes = remoteHashes[syncPath.path];
+
+                        if (!syncPath.enforced)
+                            remotePathHashes = remotePathHashes
+                                .Where((kvp) => !Sync.IsExcluded(localExclusionsForRemote, kvp.Key))
+                                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+
+                        return new KeyValuePair<string, Dictionary<string, ModFile>>(syncPath.path, remotePathHashes);
+                    }
+                )
+                .ToDictionary((kvp) => kvp.Key, (kvp) => kvp.Value, StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e);
+            Chainloader.DependencyErrors.Add(
+                $"Could not load {Info.Metadata.Name} due to error requesting server mod list. Please check the server log and try again."
+            );
+        }
+
+        Logger.LogDebug("Comparing file hashes");
         try
         {
             AnalyzeModFiles(localModFiles);
@@ -341,7 +496,7 @@ public class Plugin : BaseUnityPlugin
             async () =>
             {
                 ConsoleScreen.Log("Checking for updates.");
-                await Task.Run(StartPlugin);
+                await StartPlugin();
                 ConsoleScreen.Log($"Found {UpdateCount} available updates.");
             }
         );
@@ -349,18 +504,6 @@ public class Plugin : BaseUnityPlugin
         server = new Server(Info.Metadata.Version);
 
         configDeleteRemovedFiles = Config.Bind("General", "Delete Removed Files", true, "Should the mod delete files that have been removed from the server?");
-
-        previousSync = VFS.Exists(PREVIOUS_SYNC_PATH) ? Json.Deserialize<SyncPathModFiles>(VFS.ReadTextFile(PREVIOUS_SYNC_PATH)) : [];
-
-        if (previousSync == null)
-        {
-            Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to malformed previous sync data. Please check ModSync_Data/PreviousSync.json for errors or delete it, and try again."
-            );
-            return;
-        }
-
-        StartPlugin();
     }
 
     private List<string> _optional;
@@ -370,8 +513,9 @@ public class Plugin : BaseUnityPlugin
             .SelectMany(syncPath =>
                 addedFiles[syncPath.path]
                     .Select(file => $"ADDED {file}")
-                    .Union(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
-                    .Union(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
+                    .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
+                    .Concat(configDeleteRemovedFiles.Value || syncPath.enforced ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
+                    .Concat(createdDirectories[syncPath.path].Select(file => $"CREATED {file}/"))
             )
             .ToList();
 
@@ -382,8 +526,9 @@ public class Plugin : BaseUnityPlugin
             .SelectMany(syncPath =>
                 addedFiles[syncPath.path]
                     .Select(file => $"ADDED {file}")
-                    .Union(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
-                    .Union(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
+                    .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
+                    .Concat(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
+                    .Concat(createdDirectories[syncPath.path].Select(file => $"CREATED {file}/"))
             )
             .ToList();
 
@@ -392,7 +537,9 @@ public class Plugin : BaseUnityPlugin
         _noRestart ??= EnabledSyncPaths
             .Where(syncPath => !syncPath.restartRequired)
             .SelectMany(syncPath =>
-                addedFiles[syncPath.path].Union(updatedFiles[syncPath.path]).Union(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path] : [])
+                addedFiles[syncPath.path]
+                    .Concat(updatedFiles[syncPath.path])
+                    .Concat((configDeleteRemovedFiles.Value || syncPath.enforced) ? removedFiles[syncPath.path] : [])
             )
             .ToList();
 
@@ -413,13 +560,18 @@ public class Plugin : BaseUnityPlugin
                 (optional.Count != 0 ? string.Join("\n", optional) : "")
                     + (optional.Count != 0 && required.Count != 0 ? "\n\n" : "")
                     + (required.Count != 0 ? "[Enforced]\n" + string.Join("\n", required) : ""),
-                () => Task.Run(() => SyncMods(DownloadFiles)),
+                () => Task.Run(() => SyncMods(addedFiles, updatedFiles, createdDirectories)),
                 required.Count != 0 && optional.Count == 0 ? null : SkipUpdatingMods
             );
         }
 
         if (downloadErrorWindow.Active)
             downloadErrorWindow.Draw(Application.Quit);
+    }
+
+    public void Start()
+    {
+        Task.Run(StartPlugin);
     }
 
     public void Update()

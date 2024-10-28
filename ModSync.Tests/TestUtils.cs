@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace ModSync.Tests;
+﻿namespace ModSync.Test;
 
 public static class TestUtils
 {

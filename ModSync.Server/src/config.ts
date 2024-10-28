@@ -2,8 +2,8 @@
 import type { PreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { JsonUtil } from "@spt/utils/JsonUtil";
 import type { VFS } from "@spt/utils/VFS";
-import { glob, globNoEnd } from "./glob";
-import { unixPath } from "./utility";
+import { glob } from "./utility/glob";
+import { unixPath } from "./utility/misc";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 
 export type SyncPath = {
@@ -16,7 +16,7 @@ export type SyncPath = {
 
 type RawConfig = {
 	syncPaths: (string | SyncPath)[];
-	commonModExclusions: string[];
+	exclusions: string[];
 };
 
 const DEFAULT_CONFIG = `{
@@ -28,14 +28,9 @@ const DEFAULT_CONFIG = `{
 			"enabled": false,
 			"path": "user/mods",
 			"restartRequired": false
-		},
-		{ 
-			"path": "ModSync.Updater.exe",
-			"enforced": true,
-			"restartRequired": false
 		}
 	],
-	"commonModExclusions": [
+	"exclusions": [
 		// SPT Installer
 		"BepInEx/plugins/spt",
 		"BepInEx/patchers/spt-prepatch.dll",
@@ -48,7 +43,7 @@ const DEFAULT_CONFIG = `{
 		"user/mods/fika-server/cache",
 		"BepInEx/plugins/Fika.Dedicated.dll",
 		// Live Flea Prices
-		"user/mods/DrakiaXYZ-LiveFleaPrices/config",
+		"user/mods/zzDrakiaXYZ-LiveFleaPrices/config",
 		// Questing Bots
 		"BepInEx/plugins/DanW-SPTQuestingBots/log",
 		// EFTApi
@@ -60,29 +55,32 @@ const DEFAULT_CONFIG = `{
 		// ADD MISSING QUEST WEAPON REQUIREMENTS
 		"user/mods/zz_guiltyman-addmissingquestweaponrequirements/log.log",
 		"user/mods/zz_guiltyman-addmissingquestweaponrequirements/user/logs",
+		// Corter ModSync
+		"BepInEx/patchers/Corter-ModSync-Patcher.dll",
+		"**/*.nosync",
+		"**/*.nosync.txt",
 		// General server mods
 		"user/mods/**/.git",
 		"user/mods/**/node_modules",
 		"user/mods/**/*.js",
-		"user/mods/**/*.js.map"
+		"user/mods/**/*.js.map",
+		"**/*:Zone.Identifier"
 	]
 }`;
 
 export class Config {
+	private _globs: RegExp[];
 	constructor(
 		public syncPaths: Required<SyncPath>[],
-		public commonModExclusions: string[],
-	) {}
-
-	public isExcluded(filePath: string): boolean {
-		return this.commonModExclusions.some((exclusion) =>
-			glob(exclusion).test(unixPath(filePath)),
-		);
+		public exclusions: string[],
+	) {
+		this._globs = exclusions.map(glob);
 	}
 
-	public isParentExcluded(filePath: string): boolean {
-		return this.commonModExclusions.some((exclusion) =>
-			globNoEnd(exclusion).test(unixPath(filePath)),
+	public isExcluded(filePath: string): boolean {
+		return this._globs.some(
+			(glob) =>
+				glob.test(unixPath(filePath)),
 		);
 	}
 }
@@ -92,7 +90,7 @@ export class ConfigUtil {
 		private jsonUtil: JsonUtil,
 		private modImporter: PreSptModLoader,
 		private logger: ILogger,
-	) {}
+	) { }
 
 	/**
 	 * @throws {Error} If the config file does not exist
@@ -120,9 +118,9 @@ export class ConfigUtil {
 				"Corter-ModSync: config.jsonc 'syncPaths' is not an array. Please verify your config is correct and try again.",
 			);
 
-		if (!Array.isArray(config.commonModExclusions))
+		if (!Array.isArray(config.exclusions))
 			throw new Error(
-				"Corter-ModSync: config.jsonc 'commonModExclusions' is not an array. Please verify your config is correct and try again.",
+				"Corter-ModSync: config.jsonc 'exclusions' is not an array. Please verify your config is correct and try again.",
 			);
 
 		for (const syncPath of config.syncPaths) {
@@ -162,15 +160,32 @@ export class ConfigUtil {
 		this.validateConfig(rawConfig);
 
 		return new Config(
-			rawConfig.syncPaths.map((syncPath) => ({
-				enabled: true,
-				// Not yet implemented
-				enforced: false,
-				silent: false,
-				restartRequired: true,
-				...(typeof syncPath === "string" ? { path: syncPath } : syncPath),
-			})),
-			rawConfig.commonModExclusions,
+			[
+				{
+					enabled: true,
+					enforced: true,
+					silent: true,
+					restartRequired: false,
+					path: "ModSync.Updater.exe",
+				},
+				{
+					enabled: true,
+					enforced: true,
+					silent: true,
+					restartRequired: true,
+					path: "BepInEx/plugins/Corter-ModSync.dll",
+				},
+				...rawConfig.syncPaths
+					.map((syncPath) => ({
+						enabled: true,
+						enforced: false,
+						silent: false,
+						restartRequired: true,
+						...(typeof syncPath === "string" ? { path: syncPath } : syncPath),
+					}))
+					.sort((a, b) => b.path.length - a.path.length),
+			],
+			rawConfig.exclusions,
 		);
 	}
 }

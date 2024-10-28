@@ -1,9 +1,9 @@
 ﻿import { expect, beforeEach, describe, it, vi } from "vitest";
 import { fs, vol } from "memfs";
 
-import { Router } from "../router";
-import { Config } from "../config";
-import { SyncUtil } from "../sync";
+import { Router } from "../src/router";
+import { Config } from "../src/config";
+import { SyncUtil } from "../src/sync";
 import { VFS } from "./utils/vfs";
 import type { VFS as IVFS } from "@spt/utils/VFS";
 import type { HttpFileUtil } from "@spt/utils/HttpFileUtil";
@@ -12,12 +12,12 @@ import { PreSptModLoader } from "./utils/preSptModLoader";
 import type { PreSptModLoader as IPreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { HttpError } from "../utility";
+import { HttpError } from "../src/utility/misc";
 import type { HttpServerHelper } from "@spt/helpers/HttpServerHelper";
 
 vi.mock("node:fs", async () => (await vi.importActual("memfs")).fs);
 
-describe("router", () => {
+describe("router", async () => {
 	const config = new Config(
 		[
 			{
@@ -42,7 +42,17 @@ describe("router", () => {
 				restartRequired: true,
 			},
 		],
-		["plugins/**/node_modules"],
+		[
+			"**/*.nosync",
+			"**/*.nosync.txt",
+			"plugins/file2.dll",
+			"plugins/file3.dll",
+			"plugins/ModName",
+			"plugins/OtherMod/subdir",
+			"user/mods/**/*.js",
+			"user/mods/**/*.js.map",
+			"**/node_modules",
+		],
 	);
 	const vfs = new VFS() as IVFS;
 	const logger = mock<ILogger>();
@@ -62,7 +72,7 @@ describe("router", () => {
 
 	describe("getServerVersion", () => {
 		let req = mock<IncomingMessage>({
-			headers: { "modsync-version": "0.8.0" },
+			headers: { "modsync-version": "0.9.0" },
 		});
 		let res = mock<ServerResponse>();
 
@@ -70,12 +80,17 @@ describe("router", () => {
 			vol.reset();
 			vol.fromNestedJSON({ "package.json": '{ "version": "1.0.0" }' });
 
-			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.8.0" } });
+			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.9.0" } });
 			res = mock<ServerResponse>();
 		});
 
 		it("should return server version", async () => {
-			await router.getServerVersion(req, res, mock<RegExpMatchArray>());
+			await router.getServerVersion(
+				req,
+				res,
+				mock<RegExpMatchArray>(),
+				new URLSearchParams(),
+			);
 
 			expect(res.end).toHaveBeenCalledWith(JSON.stringify("1.0.0"));
 		});
@@ -83,28 +98,60 @@ describe("router", () => {
 
 	describe("getSyncPaths", () => {
 		let req = mock<IncomingMessage>({
-			headers: { "modsync-version": "0.8.0" },
+			headers: { "modsync-version": "0.9.0" },
 		});
 		let res = mock<ServerResponse>();
 
 		beforeEach(() => {
-			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.8.0" } });
+			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.9.0" } });
 			res = mock<ServerResponse>();
 		});
 
 		it("should return sync paths", async () => {
-			await router.getSyncPaths(req, res, mock<RegExpMatchArray>());
+			await router.getSyncPaths(
+				req,
+				res,
+				mock<RegExpMatchArray>(),
+				new URLSearchParams(),
+			);
 
 			expect(res.end.mock.calls).toMatchSnapshot();
 		});
-		
+
 		it("should serve 'rescue' mode paths when no version specified", async () => {
 			req.headers["modsync-version"] = undefined;
-			
-			await router.getSyncPaths(req, res, mock<RegExpMatchArray>());
-			
+
+			await router.getSyncPaths(
+				req,
+				res,
+				mock<RegExpMatchArray>(),
+				new URLSearchParams(),
+			);
+
 			expect(res.end.mock.calls).toMatchSnapshot();
-		})
+		});
+	});
+
+	describe("getExclusions", () => {
+		let req = mock<IncomingMessage>({
+			headers: { "modsync-version": "0.9.0" },
+		});
+		let res = mock<ServerResponse>();
+		beforeEach(() => {
+			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.9.0" } });
+			res = mock<ServerResponse>();
+		});
+
+		it("should return list of exclusions", async () => {
+			await router.getExclusions(
+				req,
+				res,
+				mock<RegExpMatchArray>(),
+				new URLSearchParams(),
+			);
+
+			expect(res.end.mock.calls).toMatchSnapshot();
+		});
 	});
 
 	describe("getHashes", () => {
@@ -133,30 +180,40 @@ describe("router", () => {
 		};
 
 		let req = mock<IncomingMessage>({
-			headers: { "modsync-version": "0.8.0" },
+			headers: { "modsync-version": "0.9.0" },
 		});
 		let res = mock<ServerResponse>();
 		beforeEach(() => {
 			vol.reset();
 			vol.fromNestedJSON(directoryStructure);
 
-			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.8.0" } });
+			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.9.0" } });
 			res = mock<ServerResponse>();
 		});
 
 		it("should return hashes", async () => {
-			await router.getHashes(req, res, mock<RegExpMatchArray>());
+			await router.getHashes(
+				req,
+				res,
+				mock<RegExpMatchArray>(),
+				new URLSearchParams(),
+			);
 
 			expect(res.end.mock.calls).toMatchSnapshot();
 		});
-		
+
 		it("should serve 'rescue' mode hashes when no version specified", async () => {
 			req.headers["modsync-version"] = undefined;
-			
-			await router.getHashes(req, res, mock<RegExpMatchArray>());
-			
+
+			await router.getHashes(
+				req,
+				res,
+				mock<RegExpMatchArray>(),
+				new URLSearchParams(),
+			);
+
 			expect(res.end.mock.calls).toMatchSnapshot();
-		})
+		});
 	});
 
 	describe("fetchModFile", () => {
@@ -185,7 +242,7 @@ describe("router", () => {
 		};
 
 		let req = mock<IncomingMessage>({
-			headers: { "modsync-version": "0.8.0" },
+			headers: { "modsync-version": "0.9.0" },
 		});
 		let res = mock<ServerResponse>();
 
@@ -194,15 +251,17 @@ describe("router", () => {
 			vol.fromNestedJSON(directoryStructure);
 			httpFileUtil.sendFile.mockClear();
 
-			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.8.0" } });
+			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.9.0" } });
 			res = mock<ServerResponse>();
 		});
 
 		it("should return mod file", async () => {
-			await router.fetchModFile(req, res, [
-				"/modsync/fetch/plugins/file1.dll",
-				"plugins/file1.dll",
-			]);
+			await router.fetchModFile(
+				req,
+				res,
+				["/modsync/fetch/plugins/file1.dll", "plugins/file1.dll"],
+				new URLSearchParams(),
+			);
 
 			expect(res.setHeader).toHaveBeenCalledWith("Content-Length", 12);
 			expect(httpFileUtil.sendFile).toHaveBeenCalledWith(
@@ -213,10 +272,12 @@ describe("router", () => {
 
 		it("should reject on non-existent path", () => {
 			expect(
-				router.fetchModFile(req, res, [
-					"/modsync/fetch/plugins/banana.dll",
-					"plugins/banana.dll",
-				]),
+				router.fetchModFile(
+					req,
+					res,
+					["/modsync/fetch/plugins/banana.dll", "plugins/banana.dll"],
+					new URLSearchParams(),
+				),
 			).rejects.toThrowError(
 				new HttpError(
 					404,

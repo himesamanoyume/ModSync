@@ -1,25 +1,63 @@
 ﻿import type { HttpFileUtil } from "@spt/utils/HttpFileUtil";
 import type { SyncUtil } from "./sync";
-import { glob } from "./glob";
+import { glob } from "./utility/glob";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import type { VFS } from "@spt/utils/VFS";
 import type { Config } from "./config";
-import { HttpError, winPath } from "./utility";
+import { HttpError, winPath } from "./utility/misc";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
 import type { PreSptModLoader } from "@spt/loaders/PreSptModLoader";
 import type { HttpServerHelper } from "@spt/helpers/HttpServerHelper";
 
-const FALLBACK_SYNCPATHS: Record<string, object> = {
-	undefined: ["BepInEx\\plugins\\Corter-ModSync.dll", "ModSync.Updater.exe"],
-};
+const FALLBACK_SYNCPATHS: Record<string, object> = {};
 
-const FALLBACK_HASHES: Record<string, object> = {
-	undefined: {
-		"BepInEx\\plugins\\Corter-ModSync.dll": { crc: 999999999 },
-		"ModSync.Updater.exe": { crc: 999999999 },
-	},
+// @ts-expect-error - undefined indicates a version before 0.8.0
+FALLBACK_SYNCPATHS[undefined] = [
+	"BepInEx\\plugins\\Corter-ModSync.dll",
+	"ModSync.Updater.exe",
+];
+FALLBACK_SYNCPATHS["0.8.0"] =
+	FALLBACK_SYNCPATHS["0.8.1"] =
+	FALLBACK_SYNCPATHS["0.8.2"] =
+		[
+			{
+				enabled: true,
+				enforced: true,
+				path: "BepInEx\\plugins\\Corter-ModSync.dll",
+				restartRequired: true,
+				silent: false,
+			},
+			{
+				enabled: true,
+				enforced: true,
+				path: "ModSync.Updater.exe",
+				restartRequired: false,
+				silent: false,
+			},
+		];
+
+const FALLBACK_HASHES: Record<string, object> = {};
+
+// @ts-expect-error - undefined indicates a version before 0.8.0
+FALLBACK_HASHES[undefined] = {
+	"BepInEx\\plugins\\Corter-ModSync.dll": { crc: 999999999 },
+	"ModSync.Updater.exe": { crc: 999999999 },
 };
+FALLBACK_HASHES["0.8.0"] =
+	FALLBACK_HASHES["0.8.1"] =
+	FALLBACK_HASHES["0.8.2"] =
+		{
+			"BepInEx\\plugins\\Corter-ModSync.dll": {
+				"BepInEx\\plugins\\Corter-ModSync.dll": {
+					crc: 999999999,
+					nosync: false,
+				},
+			},
+			"ModSync.Updater.exe": {
+				"ModSync.Updater.exe": { crc: 999999999, nosync: false },
+			},
+		};
 
 export class Router {
 	constructor(
@@ -36,9 +74,10 @@ export class Router {
 	 * @internal
 	 */
 	public async getServerVersion(
-		req: IncomingMessage,
+		_req: IncomingMessage,
 		res: ServerResponse,
 		_: RegExpMatchArray,
+		_params: URLSearchParams,
 	) {
 		const modPath = this.modImporter.getModPath("Corter-ModSync");
 		const packageJson = JSON.parse(
@@ -62,6 +101,7 @@ export class Router {
 		req: IncomingMessage,
 		res: ServerResponse,
 		_: RegExpMatchArray,
+		_params: URLSearchParams,
 	) {
 		const version = req.headers["modsync-version"] as string;
 		if (version in FALLBACK_SYNCPATHS) {
@@ -86,10 +126,25 @@ export class Router {
 	/**
 	 * @internal
 	 */
+	public async getExclusions(
+		_req: IncomingMessage,
+		res: ServerResponse,
+		_: RegExpMatchArray,
+		_params: URLSearchParams,
+	) {
+		res.setHeader("Content-Type", "application/json");
+		res.writeHead(200, "OK");
+		res.end(JSON.stringify(this.config.exclusions));
+	}
+
+	/**
+	 * @internal
+	 */
 	public async getHashes(
 		req: IncomingMessage,
 		res: ServerResponse,
 		_: RegExpMatchArray,
+		params: URLSearchParams,
 	) {
 		const version = req.headers["modsync-version"] as string;
 		if (version in FALLBACK_HASHES) {
@@ -99,11 +154,19 @@ export class Router {
 			return;
 		}
 
+		let pathsToHash = this.config.syncPaths;
+		if (params.has("path")) {
+			pathsToHash = this.config.syncPaths.filter(
+				({ path, enforced }) =>
+					enforced || params.getAll("path").includes(path),
+			);
+		}
+
+		const hashes = await this.syncUtil.hashModFiles(pathsToHash);
+
 		res.setHeader("Content-Type", "application/json");
 		res.writeHead(200, "OK");
-		res.end(
-			JSON.stringify(await this.syncUtil.hashModFiles(this.config.syncPaths)),
-		);
+		res.end(JSON.stringify(hashes));
 	}
 
 	/**
@@ -113,6 +176,7 @@ export class Router {
 		_: IncomingMessage,
 		res: ServerResponse,
 		matches: RegExpMatchArray,
+		_params: URLSearchParams,
 	) {
 		const filePath = decodeURIComponent(matches[1]);
 
@@ -129,6 +193,7 @@ export class Router {
 
 		try {
 			const fileStats = await this.vfs.statPromisify(sanitizedPath);
+			res.setHeader("Accept-Ranges", "bytes");
 			res.setHeader(
 				"Content-Type",
 				this.httpServerHelper.getMimeText(path.extname(filePath)) ||
@@ -155,6 +220,10 @@ export class Router {
 				handler: this.getSyncPaths.bind(this),
 			},
 			{
+				route: glob("/modsync/exclusions"),
+				handler: this.getExclusions.bind(this),
+			},
+			{
 				route: glob("/modsync/hashes"),
 				handler: this.getHashes.bind(this),
 			},
@@ -164,10 +233,12 @@ export class Router {
 			},
 		];
 
+		const url = new URL(req.url!, `http://${req.headers.host}`);
+
 		try {
 			for (const { route, handler } of routeTable) {
-				const matches = route.exec(req.url || "");
-				if (matches) return handler(req, res, matches);
+				const matches = route.exec(url.pathname);
+				if (matches) return handler(req, res, matches, url.searchParams);
 			}
 
 			throw new HttpError(404, "Corter-ModSync: Unknown route");

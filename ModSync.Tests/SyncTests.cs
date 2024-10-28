@@ -1,196 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SPT.Custom.Utils;
+﻿using System.Text;
+using System.Text.RegularExpressions;
+using ModSync.Utility;
 
-namespace ModSync.Tests;
+namespace ModSync.Test;
 
-[TestClass]
+[TestFixture]
 public class AddedFilesTests
 {
-    [TestMethod]
+    [Test]
     public void TestSingleAdded()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) } }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
-
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, addedFiles[@"BepInEx\plugins"]);
-    }
-
-    [TestMethod]
-    public void TestSingleAddedNoSync()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567, true) }, }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(2345678) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
-
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, addedFiles[@"BepInEx\plugins"]);
-    }
-
-    [TestMethod]
-    public void TestNoneAdded()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) } }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, }
-            }
-        };
-
-        var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
-
-        Assert.AreEqual(0, addedFiles[@"BepInEx\plugins"].Count);
-    }
-}
-
-[TestClass]
-public class UpdatedFilesTests
-{
-    [TestMethod]
-    public void TestSingleAdded()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) } }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, }
-            }
-        };
-
-        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
-
-        Assert.AreEqual(0, updatedFiles[@"BepInEx\plugins"].Count);
-    }
-
-    [TestMethod]
-    public void TestSingleUpdated()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) }, }
-            }
-        };
-
-        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
-
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, updatedFiles[@"BepInEx\plugins"]);
-    }
-
-    [TestMethod]
-    public void TestOnlyLocalUpdated()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) }, }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
-
-        Assert.AreEqual(0, updatedFiles[@"BepInEx\plugins"].Count);
-    }
-
-    [TestMethod]
-    public void TestFilesExistButPreviousEmpty()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
             }
         };
 
@@ -200,9 +24,193 @@ public class UpdatedFilesTests
                 @"BepInEx\plugins",
                 new Dictionary<string, ModFile>
                 {
-                    { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) },
-                    { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) },
-                    { @"BepInEx\plugins\New-Mod.dll", new(1234567) },
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
+
+        Assert.That(addedFiles[@"BepInEx\plugins"], Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }));
+    }
+
+    [Test]
+    public void TestNoneAdded()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
+            }
+        };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
+            }
+        };
+
+        var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
+
+        Assert.That(addedFiles[@"BepInEx\plugins"], Is.Empty);
+    }
+}
+
+[TestFixture]
+public class UpdatedFilesTests
+{
+    [Test]
+    public void TestSingleAdded()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
+            }
+        };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
+            }
+        };
+
+        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
+
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.Empty);
+    }
+
+    [Test]
+    public void TestSingleUpdated()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
+                }
+            }
+        };
+
+        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
+
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }));
+    }
+
+    [Test]
+    public void TestOnlyLocalUpdated()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
+                }
+            }
+        };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
+
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.Empty);
+    }
+
+    [Test]
+    public void TestFilesExistButPreviousEmpty()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
+                    { @"BepInEx\plugins\New-Mod.dll", new ModFile("1234567") },
                 }
             }
         };
@@ -211,78 +219,15 @@ public class UpdatedFilesTests
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(1, updatedFiles[@"BepInEx\plugins"].Count);
-        Assert.AreEqual(@"BepInEx\plugins\Corter-ModSync.dll", updatedFiles[@"BepInEx\plugins"][0]);
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Has.Count.EqualTo(1));
+            Assert.That(updatedFiles[@"BepInEx\plugins"][0], Is.EqualTo(@"BepInEx\plugins\Corter-ModSync.dll"));
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestBothUpdated()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) }, }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) }, }
-            }
-        };
-
-        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
-
-        Assert.AreEqual(0, updatedFiles[@"BepInEx\plugins"].Count);
-    }
-
-    [TestMethod]
-    public void TestSingleUpdatedEnforced()
-    {
-        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(2345678) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) }, }
-            }
-        };
-
-        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
-        {
-            {
-                @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
-            }
-        };
-
-        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
-
-        Assert.AreEqual(2, updatedFiles[@"BepInEx\plugins"].Count);
-        Assert.IsTrue(updatedFiles[@"BepInEx\plugins"].Contains(@"BepInEx\plugins\Corter-ModSync.dll"));
-        Assert.IsTrue(updatedFiles[@"BepInEx\plugins"].Contains(@"BepInEx\plugins\SAIN\SAIN.dll"));
-    }
-
-    [TestMethod]
-    public void TestSingleUpdatedEnforcedNoSync()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
@@ -290,8 +235,8 @@ public class UpdatedFilesTests
                 @"BepInEx\plugins",
                 new Dictionary<string, ModFile>
                 {
-                    { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) },
-                    { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567, true) },
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                 }
             }
         };
@@ -300,7 +245,11 @@ public class UpdatedFilesTests
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(2345678) }, }
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
+                }
             }
         };
 
@@ -308,28 +257,31 @@ public class UpdatedFilesTests
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
             }
         };
 
-        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
+        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        Assert.AreEqual(1, updatedFiles[@"BepInEx\plugins"].Count);
-        Assert.IsTrue(updatedFiles[@"BepInEx\plugins"].Contains(@"BepInEx\plugins\Corter-ModSync.dll"));
+        Assert.That(updatedFiles[@"BepInEx\plugins"], Is.Empty);
     }
-}
 
-[TestClass]
-public class RemovedFilesTests
-{
-    [TestMethod]
-    public void TestSingleRemoved()
+    [Test]
+    public void TestSingleUpdatedEnforced()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("2345678") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
             }
         };
 
@@ -337,7 +289,11 @@ public class RemovedFilesTests
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, }
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
+                }
             }
         };
 
@@ -345,16 +301,69 @@ public class RemovedFilesTests
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Has.Count.EqualTo(2));
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Does.Contain(@"BepInEx\plugins\Corter-ModSync.dll"));
+            Assert.That(updatedFiles[@"BepInEx\plugins"], Does.Contain(@"BepInEx\plugins\SAIN\SAIN.dll"));
+        });
+    }
+}
+
+[TestFixture]
+public class RemovedFilesTests
+{
+    [Test]
+    public void TestSingleRemoved()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
+            }
+        };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
+            }
+        };
+
+        var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
             }
         };
 
         var removedFiles = Sync.GetRemovedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        CollectionAssert.AreEqual(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }, removedFiles[@"BepInEx\plugins"]);
+        Assert.That(removedFiles[@"BepInEx\plugins"], Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll" }));
     }
 
-    [TestMethod]
+    [Test]
     public void TestSingleRemovedEnforced()
     {
         var localModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -363,9 +372,9 @@ public class RemovedFilesTests
                 @"BepInEx\plugins",
                 new Dictionary<string, ModFile>
                 {
-                    { @"BepInEx\plugins\OtherPlugin\OtherPlugin.dll", new(1234567) },
-                    { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) },
-                    { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567, true) },
+                    { @"BepInEx\plugins\OtherPlugin\OtherPlugin.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567", true) },
                 }
             }
         };
@@ -374,7 +383,7 @@ public class RemovedFilesTests
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, }
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
             }
         };
 
@@ -382,22 +391,64 @@ public class RemovedFilesTests
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new(1234567) }, { @"BepInEx\plugins\Corter-ModSync.dll", new(1234567) }, }
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
+                    { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
+                }
             }
         };
 
         var removedFiles = Sync.GetRemovedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
 
-        CollectionAssert.AreEquivalent(
-            new List<string> { @"BepInEx\plugins\Corter-ModSync.dll", @"BepInEx\plugins\OtherPlugin\OtherPlugin.dll" },
-            removedFiles[@"BepInEx\plugins"]
+        Assert.That(
+            removedFiles[@"BepInEx\plugins"],
+            Is.EquivalentTo(new List<string> { @"BepInEx\plugins\Corter-ModSync.dll", @"BepInEx\plugins\OtherPlugin\OtherPlugin.dll" })
         );
     }
 }
 
-[TestClass]
+[TestFixture]
+public class CreatedDirectoriesTests
+{
+    [Test]
+    public void TestCreatedDirectories()
+    {
+        var localModFiles = new Dictionary<string, Dictionary<string, ModFile>> { { @"BepInEx\plugins", new Dictionary<string, ModFile>() } };
+
+        var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
+        {
+            {
+                @"BepInEx\plugins",
+                new Dictionary<string, ModFile>
+                {
+                    { @"BepInEx\plugins\ModThatDoesntErrorCheckFolders\SuperImportantEmptyFolder", new ModFile("1234567", directory: true) },
+                }
+            }
+        };
+
+        var createdDirectories = Sync.GetCreatedDirectories([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles);
+
+        Assert.That(
+            createdDirectories[@"BepInEx\plugins"],
+            Is.EquivalentTo(new List<string> { @"BepInEx\plugins\ModThatDoesntErrorCheckFolders\SuperImportantEmptyFolder" })
+        );
+    }
+}
+
+[TestFixture]
 public class HashLocalFilesTests
 {
+    private readonly List<Regex> exclusions =
+    [
+        Glob.CreateNoEnd("**/*.nosync"),
+        Glob.CreateNoEnd("**/*.nosync.txt"),
+        Glob.CreateNoEnd("plugins/file2.dll"),
+        Glob.CreateNoEnd("plugins/file3.dll"),
+        Glob.CreateNoEnd("plugins/ModName"),
+        Glob.CreateNoEnd("plugins/OtherMod/subdir"),
+    ];
+
     private readonly Dictionary<string, string> fileContents =
         new()
         {
@@ -415,7 +466,7 @@ public class HashLocalFilesTests
 
     private string testDirectory;
 
-    [TestInitialize]
+    [SetUp]
     public void Setup()
     {
         testDirectory = TestUtils.GetTemporaryDirectory();
@@ -437,73 +488,78 @@ public class HashLocalFilesTests
         Console.WriteLine(testDirectory);
     }
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         Directory.Delete(testDirectory, true);
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFiles()
     {
-        var expected = fileContents
-            .Where(kvp => !kvp.Key.EndsWith(".nosync") && !kvp.Key.EndsWith(".nosync.txt"))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins")], [new SyncPath("plugins")]);
+        var expected = fileContents.Where(kvp => !Sync.IsExcluded(exclusions, kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins")], exclusions, []).Result;
 
-        Assert.IsNotNull(result);
-        Assert.AreEqual(expected.Count, result["plugins"].Count);
+        Assert.That(result, Is.Not.Null);
 
         foreach (var kvp in expected)
         {
-            Assert.IsTrue(result["plugins"].ContainsKey(kvp.Key));
-            Assert.AreEqual(Crc32.Compute(Encoding.ASCII.GetBytes(kvp.Value)), result["plugins"][kvp.Key].crc);
+            Assert.That(result["plugins"], Does.ContainKey(kvp.Key));
+            Assert.That(result["plugins"][kvp.Key].hash, Is.EqualTo(ImoHash.HashFileObject(new MemoryStream(Encoding.ASCII.GetBytes(kvp.Value))).Result));
         }
 
-        Assert.AreEqual(2, result["plugins"].Count(kvp => !kvp.Value.nosync));
+        Assert.That(result["plugins"], Has.Count.EqualTo(2));
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesWithDirectoryThatDoesNotExist()
     {
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("bad_directory")], [new SyncPath("bad_directory")]);
-        Assert.IsNotNull(result);
-        Assert.AreEqual(0, result["bad_directory"].Count);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("bad_directory")], exclusions, []).Result;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result["bad_directory"], Is.Empty);
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesWithSingleFile()
     {
-        var syncPath = Path.Combine(testDirectory, "plugins\\file1.dll");
+        var syncPath = Path.Combine(testDirectory, @"plugins\file1.dll");
 
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], [new SyncPath(syncPath)]);
-        Assert.IsNotNull(result);
-        Assert.AreEqual(1, result[syncPath].Count);
-        Assert.IsTrue(result[syncPath].ContainsKey("plugins\\file1.dll"));
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []).Result;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result[syncPath], Has.Count.EqualTo(1));
+            Assert.That(result[syncPath], Does.ContainKey(@"plugins\file1.dll"));
+            Assert.That(result[syncPath][@"plugins\file1.dll"].hash, Is.EqualTo("0ce304b7ff04260d67adfdee0af9dd3b"));
+        });
     }
 
-    [TestMethod]
+    [Test]
     public void TestHashLocalFilesWithSingleFileThatDoesNotExist()
     {
         var syncPath = Path.Combine(testDirectory, "does_not_exist.dll");
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], [new SyncPath(syncPath)]);
-        Assert.IsNotNull(result);
-        Assert.AreEqual(0, result[syncPath].Count);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], exclusions, []).Result;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result[syncPath], Is.Empty);
+        });
     }
 
-    [TestMethod]
-    public void TestIncludeDisabledWithNoSync()
+    [Test]
+    public void TestHashLocalFilesEnforcedIgnoresLocalExclusions()
     {
-        var syncPath = Path.Combine(testDirectory, "plugins\\file1.dll");
-        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath(syncPath)], []);
-        Assert.IsNotNull(result);
-        Assert.AreEqual(1, result.Count);
-        Assert.IsTrue(result[syncPath].ContainsKey("plugins\\file1.dll"));
-        Assert.IsTrue(result[syncPath]["plugins\\file1.dll"].nosync);
+        var expected = fileContents.Where(kvp => !Sync.IsExcluded(exclusions, kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        var result = Sync.HashLocalFiles(testDirectory, [new SyncPath("plugins", enforced: true)], exclusions, [Glob.Create("plugins/file1.dll")]).Result;
+        Assert.That(result["plugins"].Keys, Is.EquivalentTo(expected.Keys));
     }
 }
 
-[TestClass]
+[TestFixture]
 public class CreateModFileTest
 {
     private readonly Dictionary<string, string> fileContents =
@@ -522,8 +578,9 @@ public class CreateModFileTest
         };
 
     private string testDirectory;
+    private SemaphoreSlim limiter = new(1024, 1024);
 
-    [TestInitialize]
+    [SetUp]
     public void Setup()
     {
         testDirectory = TestUtils.GetTemporaryDirectory();
@@ -537,7 +594,7 @@ public class CreateModFileTest
             var fileParent = Path.GetDirectoryName(filePath);
 
             if (!Directory.Exists(fileParent))
-                Directory.CreateDirectory(fileParent);
+                Directory.CreateDirectory(fileParent!);
 
             File.WriteAllText(filePath, kvp.Value);
         }
@@ -545,54 +602,46 @@ public class CreateModFileTest
         Console.WriteLine(testDirectory);
     }
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         Directory.Delete(testDirectory, true);
     }
 
-    [TestMethod]
+    [Test]
     public void TestCreateModFile()
     {
-        var kv = Sync.CreateModFile(testDirectory, Path.Combine(testDirectory, "file1.dll"), true);
+        var modFile = Sync.CreateModFile(Path.Combine(testDirectory, "file1.dll")).Result;
 
-        Assert.IsNotNull(kv.Value);
-        Assert.AreEqual(0u, kv.Value.crc);
-        Assert.IsFalse(kv.Value.nosync);
+        Assert.Multiple(() =>
+        {
+            Assert.That(modFile, Is.Not.Null);
+            Assert.That(modFile.hash, Is.EqualTo("00d1413dcaf30500b65fc68446b10646"));
+        });
     }
 
-    [TestMethod]
-    public void TestCreateModFileDisabled()
+    [Test]
+    public void TestCreateModFileWithContent()
     {
-        var kv = Sync.CreateModFile(testDirectory, Path.Combine(testDirectory, "file1.dll"), false);
+        var modFile = Sync.CreateModFile(Path.Combine(testDirectory, "file3.dll")).Result;
 
-        Assert.IsNotNull(kv.Value);
-        Assert.AreEqual(0u, kv.Value.crc);
-        Assert.IsTrue(kv.Value.nosync);
-    }
-
-    [TestMethod]
-    public void TestCreateModFileWithNoSync()
-    {
-        var kv = Sync.CreateModFile(testDirectory, Path.Combine(testDirectory, "file2.dll"), true);
-
-        Assert.IsNotNull(kv.Value);
-        Assert.AreEqual(0u, kv.Value.crc);
-        Assert.IsTrue(kv.Value.nosync);
+        Assert.Multiple(() =>
+        {
+            Assert.That(modFile, Is.Not.Null);
+            Assert.That(modFile.hash, Is.EqualTo("0e51ecd1fbd55148997270d6634ff6db"));
+        });
     }
 }
 
-[TestClass]
-public class NoSyncInTreeTest
+[TestFixture]
+public class IsExcludedTest
 {
     private readonly Dictionary<string, string> fileContents =
         new()
         {
             { "file1.dll", "Test content" },
             { "file2.dll", "Test content 2" },
-            { "file2.dll.nosync", "" },
             { "file3.dll", "Test content 3" },
-            { "file3.dll.nosync.txt", "" },
             { @"ModName\mod_name.dll", "Test content 4" },
             { @"ModName\.nosync", "" },
             { @"ModName\subdir\image.png", "Test Image 1" },
@@ -601,9 +650,19 @@ public class NoSyncInTreeTest
             { @"OtherMod\subdir\.nosync", "" }
         };
 
+    private readonly List<Regex> exclusions =
+    [
+        Glob.Create("**/*.nosync"),
+        Glob.Create("**/*.nosync.txt"),
+        Glob.Create("file2.dll"),
+        Glob.Create("file3.dll"),
+        Glob.Create(@"ModName"),
+        Glob.Create(@"OtherMod\subdir"),
+    ];
+
     private string testDirectory;
 
-    [TestInitialize]
+    [SetUp]
     public void Setup()
     {
         testDirectory = TestUtils.GetTemporaryDirectory();
@@ -617,7 +676,7 @@ public class NoSyncInTreeTest
             var fileParent = Path.GetDirectoryName(filePath);
 
             if (!Directory.Exists(fileParent))
-                Directory.CreateDirectory(fileParent);
+                Directory.CreateDirectory(fileParent!);
 
             File.WriteAllText(filePath, kvp.Value);
         }
@@ -625,37 +684,23 @@ public class NoSyncInTreeTest
         Console.WriteLine(testDirectory);
     }
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         Directory.Delete(testDirectory, true);
     }
 
-    [TestMethod]
-    public void TestNoSyncInTreeWithoutNoSync()
+    [Test]
+    public void TestIsNotExcluded()
     {
-        var result = Sync.NoSyncInTree(testDirectory, "file1.dll");
-        Assert.IsFalse(result);
+        var result = Sync.IsExcluded(exclusions, "file1.dll");
+        Assert.That(result, Is.False);
     }
 
-    [TestMethod]
-    public void TestNoSyncInTreeWithNoSync()
+    [Test]
+    public void TestIsExcluded()
     {
-        var result = Sync.NoSyncInTree(testDirectory, "file2.dll");
-        Assert.IsTrue(result);
-    }
-
-    [TestMethod]
-    public void TestNoSyncInTreeWithNoSyncTxt()
-    {
-        var result = Sync.NoSyncInTree(testDirectory, "file3.dll");
-        Assert.IsTrue(result);
-    }
-
-    [TestMethod]
-    public void TestNoSyncInTreeWithNoSyncInParent()
-    {
-        var result = Sync.NoSyncInTree(testDirectory, @"ModName\subdir\image.png");
-        Assert.IsTrue(result);
+        var result = Sync.IsExcluded(exclusions, "file2.dll");
+        Assert.That(result, Is.True);
     }
 }
