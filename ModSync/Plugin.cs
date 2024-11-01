@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -290,17 +291,21 @@ public class Plugin : BaseUnityPlugin
         Application.Quit();
     }
 
-    private async Task StartPlugin()
+    private IEnumerator StartPlugin()
     {
         cts = new CancellationTokenSource();
         if (Directory.Exists(PENDING_UPDATES_DIR) || File.Exists(REMOVED_FILES_PATH))
             Logger.LogWarning(
                 "ModSync found previous update. Updater may have failed, check the 'ModSync_Data/Updater.log' for details. Attempting to continue."
             );
+
         Logger.LogDebug("Fetching server version");
+        var versionTask = server.GetModSyncVersion();
+        yield return new WaitUntil(() => versionTask.IsCompleted);
         try
         {
-            var version = await server.GetModSyncVersion();
+            var version = versionTask.Result;
+
             Logger.LogInfo($"ModSync found server version: {version}");
             if (version != Info.Metadata.Version.ToString())
                 Logger.LogWarning($"ModSync server version does not match plugin version. Found server version: {version}. Plugin may not work as expected!");
@@ -311,12 +316,15 @@ public class Plugin : BaseUnityPlugin
             Chainloader.DependencyErrors.Add(
                 $"Could not load {Info.Metadata.Name} due to error requesting server version. Please ensure the server mod is properly installed and try again."
             );
-            return;
+            yield break;
         }
+
         Logger.LogDebug("Fetching sync paths");
+        var syncPathTask = server.GetModSyncPaths();
+        yield return new WaitUntil(() => syncPathTask.IsCompleted);
         try
         {
-            syncPaths = await server.GetModSyncPaths();
+            syncPaths = syncPathTask.Result;
         }
         catch (Exception e)
         {
@@ -324,8 +332,9 @@ public class Plugin : BaseUnityPlugin
             Chainloader.DependencyErrors.Add(
                 $"Could not load {Info.Metadata.Name} due to error requesting sync paths. Please ensure the server mod is properly installed and try again."
             );
-            return;
+            yield break;
         }
+
         Logger.LogDebug("Processing sync paths");
         foreach (var syncPath in syncPaths)
         {
@@ -334,7 +343,7 @@ public class Plugin : BaseUnityPlugin
                 Chainloader.DependencyErrors.Add(
                     $"Could not load {Info.Metadata.Name} due to invalid sync path. Paths must be relative to SPT server root! Invalid path '{syncPath}'"
                 );
-                return;
+                yield break;
             }
 
             if (!Path.GetFullPath(syncPath.path).StartsWith(Directory.GetCurrentDirectory()))
@@ -342,9 +351,10 @@ public class Plugin : BaseUnityPlugin
                 Chainloader.DependencyErrors.Add(
                     $"Could not load {Info.Metadata.Name} due to invalid sync path. Paths must be within SPT server root! Invalid path '{syncPath}'"
                 );
-                return;
+                yield break;
             }
         }
+
         Logger.LogDebug("Running migrator");
         new Migrator(Directory.GetCurrentDirectory()).TryMigrate(Info.Metadata.Version, syncPaths);
 
@@ -368,7 +378,7 @@ public class Plugin : BaseUnityPlugin
         Logger.LogDebug("Loading previous sync data");
         try
         {
-            previousSync = VFS.Exists(PREVIOUS_SYNC_PATH) ? Json.Deserialize<SyncPathModFiles>(await VFS.ReadTextFileAsync(PREVIOUS_SYNC_PATH)) : [];
+            previousSync = VFS.Exists(PREVIOUS_SYNC_PATH) ? Json.Deserialize<SyncPathModFiles>(VFS.ReadTextFile(PREVIOUS_SYNC_PATH)) : [];
         }
         catch (Exception e)
         {
@@ -376,7 +386,7 @@ public class Plugin : BaseUnityPlugin
             Chainloader.DependencyErrors.Add(
                 $"Could not load {Info.Metadata.Name} due to malformed previous sync data. Please check ModSync_Data/PreviousSync.json for errors or delete it, and try again."
             );
-            return;
+            yield break;
         }
 
         Logger.LogDebug("Loading local exclusions");
@@ -392,13 +402,13 @@ public class Plugin : BaseUnityPlugin
                 Chainloader.DependencyErrors.Add(
                     $"Could not load {Info.Metadata.Name} due to error writing local exclusions file for dedicated client. Please check BepInEx/LogOutput.log for more information."
                 );
-                return;
+                yield break;
             }
         }
 
         try
         {
-            localExclusions = VFS.Exists(LOCAL_EXCLUSIONS_PATH) ? Json.Deserialize<List<string>>(await VFS.ReadTextFileAsync(LOCAL_EXCLUSIONS_PATH)) : [];
+            localExclusions = VFS.Exists(LOCAL_EXCLUSIONS_PATH) ? Json.Deserialize<List<string>>(VFS.ReadTextFile(LOCAL_EXCLUSIONS_PATH)) : [];
         }
         catch (Exception e)
         {
@@ -406,14 +416,17 @@ public class Plugin : BaseUnityPlugin
             Chainloader.DependencyErrors.Add(
                 $"Could not load {Info.Metadata.Name} due to malformed local exclusion data. Please check ModSync_Data/Exclusions.json for errors or delete it, and try again."
             );
-            return;
+            yield break;
         }
 
         Logger.LogDebug("Fetching exclusions");
+
         List<string> exclusions;
+        var exclusionsTask = server.GetModSyncExclusions();
+        yield return new WaitUntil(() => exclusionsTask.IsCompleted);
         try
         {
-            exclusions = await server.GetModSyncExclusions();
+            exclusions = exclusionsTask.Result;
         }
         catch (Exception e)
         {
@@ -421,22 +434,29 @@ public class Plugin : BaseUnityPlugin
             Chainloader.DependencyErrors.Add(
                 $"Could not load {Info.Metadata.Name} due to error requesting exclusions. Please ensure the server mod is properly installed and try again."
             );
-            return;
+            yield break;
         }
+
         Logger.LogDebug("Hashing local files");
-        var localModFiles = await Sync.HashLocalFiles(
+
+        var localModFilesTask = Sync.HashLocalFiles(
             Directory.GetCurrentDirectory(),
             EnabledSyncPaths,
             exclusions.Select(Glob.Create).ToList(),
             localExclusions.Select(Glob.Create).ToList()
         );
 
+        yield return new WaitUntil(() => localModFilesTask.IsCompleted);
+        var localModFiles = localModFilesTask.Result;
+
         VFS.WriteTextFile(LOCAL_HASHES_PATH, Json.Serialize(localModFiles));
 
         Logger.LogDebug("Fetching remote file hashes");
+        var remoteHashesTask = server.GetRemoteModFileHashes(EnabledSyncPaths);
+        yield return new WaitUntil(() => remoteHashesTask.IsCompleted);
         try
         {
-            var remoteHashes = await server.GetRemoteModFileHashes(EnabledSyncPaths);
+            var remoteHashes = remoteHashesTask.Result;
 
             var localExclusionsForRemote = localExclusions.Select(Glob.CreateNoEnd).ToList();
             remoteModFiles = EnabledSyncPaths
@@ -492,12 +512,10 @@ public class Plugin : BaseUnityPlugin
     {
         ConsoleScreen.Processor.RegisterCommand(
             "modsync",
-            // ReSharper disable once AsyncVoidLambda
-            async () =>
+            () =>
             {
                 ConsoleScreen.Log("Checking for updates.");
-                await StartPlugin();
-                ConsoleScreen.Log($"Found {UpdateCount} available updates.");
+                StartCoroutine(StartPlugin());
             }
         );
 
@@ -571,7 +589,7 @@ public class Plugin : BaseUnityPlugin
 
     public void Start()
     {
-        Task.Run(StartPlugin);
+        StartCoroutine(StartPlugin());
     }
 
     public void Update()
