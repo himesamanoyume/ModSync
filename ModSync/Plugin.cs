@@ -22,7 +22,7 @@ namespace ModSync;
 using SyncPathFileList = Dictionary<string, List<string>>;
 using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
 
-[BepInPlugin("corter.modsync", "Corter ModSync", "0.9.0")]
+[BepInPlugin("corter.modsync", "Corter ModSync", "0.9.1")]
 public class Plugin : BaseUnityPlugin
 {
     private static readonly string MODSYNC_DIR = Path.Combine(Directory.GetCurrentDirectory(), "ModSync_Data");
@@ -533,7 +533,7 @@ public class Plugin : BaseUnityPlugin
                     .Select(file => $"ADDED {file}")
                     .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
                     .Concat(configDeleteRemovedFiles.Value || syncPath.enforced ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
-                    .Concat(createdDirectories[syncPath.path].Select(file => $"CREATED {file}/"))
+                    .Concat(createdDirectories[syncPath.path].Select(file => $@"CREATED {file}\"))
             )
             .ToList();
 
@@ -546,7 +546,7 @@ public class Plugin : BaseUnityPlugin
                     .Select(file => $"ADDED {file}")
                     .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
                     .Concat(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
-                    .Concat(createdDirectories[syncPath.path].Select(file => $"CREATED {file}/"))
+                    .Concat(createdDirectories[syncPath.path].Select(file => $@"CREATED {file}\"))
             )
             .ToList();
 
