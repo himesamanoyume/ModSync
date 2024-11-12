@@ -55,7 +55,6 @@ public class Server(Version pluginVersion)
 
                 await responseStream.CopyToAsync(fileStream, (int)responseStream.Length, cancellationToken);
                 limiter.Release();
-                return;
             }
             catch (Exception e)
             {
@@ -67,13 +66,12 @@ public class Server(Version pluginVersion)
                     Plugin.Logger.LogError($"Failed to download '{file}'. Retrying ({retryCount + 1}/5)...");
                     await Task.Delay(500, cancellationToken);
                     retryCount++;
+                    continue;
                 }
-                else
-                {
-                    Plugin.Logger.LogError($"Failed to download '{file}'. Exiting...");
-                    Plugin.Logger.LogError(e);
-                    throw;
-                }
+
+                Plugin.Logger.LogError($"Failed to download '{file}'. Exiting...");
+                Plugin.Logger.LogError(e);
+                throw;
             }
         }
     }
