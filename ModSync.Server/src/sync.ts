@@ -5,6 +5,7 @@ import type { Config, SyncPath } from "./config";
 import { HttpError, winPath } from "./utility/misc";
 import { Semaphore } from "./utility/semaphore";
 import type { ILogger } from "@spt/models/spt/utils/ILogger";
+import type { } from "node:fs";
 
 type ModFile = {
 	hash: string;
@@ -18,7 +19,7 @@ export class SyncUtil {
 		private vfs: VFS,
 		private config: Config,
 		private logger: ILogger,
-	) {}
+	) { }
 
 	private async getFilesInDir(baseDir: string, dir: string): Promise<string[]> {
 		if (!this.vfs.exists(dir)) {
@@ -34,7 +35,7 @@ export class SyncUtil {
 		const files: string[] = [];
 		for (const fileName of this.vfs.getFiles(dir)) {
 			const file = path.join(dir, fileName);
-			
+
 			if (this.config.isExcluded(file)) continue;
 
 			files.push(file);
@@ -44,10 +45,10 @@ export class SyncUtil {
 			const subDir = path.join(dir, dirName);
 
 			if (this.config.isExcluded(subDir)) continue;
-			
+
 			const subFiles = await this.getFilesInDir(baseDir, subDir);
 			if (!subFiles.length) files.push(subDir)
-			
+
 			files.push(...subFiles);
 		}
 
@@ -59,23 +60,34 @@ export class SyncUtil {
 	private async buildModFile(
 		file: string,
 		// biome-ignore lint/correctness/noEmptyPattern: <explanation>
-		{}: Required<SyncPath>,
+		{ }: Required<SyncPath>,
 	): Promise<ModFile> {
 		const stats = await this.vfs.statPromisify(file);
 		if (stats.isDirectory()) return { hash: "", directory: true };
 
-		try {
-			const lock = await this.limiter.acquire();
-			const hash = await hashFile(file);
-			lock.release();
+		let retryCount = 0;
+		const lock = await this.limiter.acquire();
+		while (true) {
+			try {
+				const hash = await hashFile(file);
+				lock.release();
 
-			return {
-				hash,
-				directory: false,
-			};
-		} catch (e) {
-			console.log(e);
-			throw new HttpError(500, `Corter-ModSync: Error reading '${file}'\n${e}`);
+				return {
+					hash,
+					directory: false,
+				};
+			} catch (e) {
+				if (e instanceof Error && 'code' in e && e.code === "EBUSY" && retryCount < 5) {
+					this.logger.error(`Error reading '${file}'. Retrying (${retryCount}/5)...`);
+					await new Promise((resolve) => setTimeout(resolve, 500));
+					retryCount++;
+					continue;
+				}
+
+				this.logger.error(`Error reading '${file}'. Exiting...`);
+				this.logger.error(`${e}`);
+				throw new HttpError(500, `Corter-ModSync: Error reading '${file}'\n${e}`);
+			}
 		}
 	}
 
@@ -92,7 +104,7 @@ export class SyncUtil {
 
 			for (const file of files) {
 				if (processedFiles.has(winPath(file))) continue;
-				
+
 				filesResult[winPath(file)] = await this.buildModFile(file, syncPath);
 
 				processedFiles.add(winPath(file));
@@ -100,7 +112,7 @@ export class SyncUtil {
 
 			result[winPath(syncPath.path)] = filesResult;
 		}
-		
+
 		this.logger.info(`Corter-ModSync: Hashed ${processedFiles.size} files in ${performance.now() - startTime}ms`);
 
 		return result;
@@ -116,14 +128,14 @@ export class SyncUtil {
 		const normalized = path.join(
 			path.normalize(file).replace(/^(\.\.(\/|\\|$))+/, ""),
 		);
-		
+
 		for (const syncPath of syncPaths) {
 			const fullPath = path.join(process.cwd(), syncPath.path);
 			if (!path.relative(fullPath, normalized).startsWith("..")) {
 				return normalized;
 			}
 		}
-		
+
 		throw new HttpError(
 			400,
 			`Corter-ModSync: Requested file '${file}' is not in an enabled sync path!`,
