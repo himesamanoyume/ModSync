@@ -437,8 +437,9 @@ public class Plugin : BaseUnityPlugin
             yield break;
         }
 
-        Logger.LogDebug("Hashing local files");
+        yield return new WaitUntil(() => Singleton<CommonUI>.Instantiated);
 
+        Logger.LogDebug("Hashing local files");
         var localModFilesTask = Sync.HashLocalFiles(
             Directory.GetCurrentDirectory(),
             EnabledSyncPaths,
