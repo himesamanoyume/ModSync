@@ -1,6 +1,6 @@
 [package]
-name = "mod_sync_metro_hash"
-version = "0.1.0"
+name = "modsync_metro_hash"
+version = "0.10.0"
 authors = ["corter <5890013+c-orter@users.noreply.github.com>"]
 edition = "2018"
 

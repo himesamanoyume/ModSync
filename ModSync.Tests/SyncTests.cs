@@ -578,7 +578,7 @@ public class CreateModFileTest
         };
 
     private string testDirectory;
-    private SemaphoreSlim limiter = new(1024, 1024);
+    private readonly SemaphoreSlim limiter = new(1024);
 
     [SetUp]
     public void Setup()

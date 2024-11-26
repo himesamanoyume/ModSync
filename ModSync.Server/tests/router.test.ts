@@ -257,7 +257,7 @@ describe("router", async () => {
 		beforeEach(() => {
 			vol.reset();
 			vol.fromNestedJSON(directoryStructure);
-			httpFileUtil.sendFile.mockClear();
+			httpFileUtil.sendFileAsync.mockClear();
 
 			req = mock<IncomingMessage>({ headers: { "modsync-version": "0.9.0" } });
 			res = mock<ServerResponse>();
@@ -272,7 +272,7 @@ describe("router", async () => {
 			);
 
 			expect(res.setHeader).toHaveBeenCalledWith("Content-Length", 12);
-			expect(httpFileUtil.sendFile).toHaveBeenCalledWith(
+			expect(httpFileUtil.sendFileAsync).toHaveBeenCalledWith(
 				res,
 				"plugins\\file1.dll",
 			);

@@ -22,7 +22,7 @@ namespace ModSync;
 using SyncPathFileList = Dictionary<string, List<string>>;
 using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
 
-[BepInPlugin("corter.modsync", "Corter ModSync", "0.9.1")]
+[BepInPlugin("corter.modsync", "Corter ModSync", "0.10.0")]
 public class Plugin : BaseUnityPlugin
 {
     private static readonly string MODSYNC_DIR = Path.Combine(Directory.GetCurrentDirectory(), "ModSync_Data");
@@ -186,7 +186,7 @@ public class Plugin : BaseUnityPlugin
         downloadCount = 0;
         totalDownloadCount = 0;
 
-        var limiter = new SemaphoreSlim(8, maxCount: 8);
+        var limiter = new SemaphoreSlim(8);
         var filesToDownload = EnabledSyncPaths
             .Select((syncPath) => new KeyValuePair<string, List<string>>(syncPath.path, [.. filesToAdd[syncPath.path], .. filesToUpdate[syncPath.path]]))
             .ToDictionary((kvp) => kvp.Key, (kvp) => kvp.Value);

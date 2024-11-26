@@ -20,22 +20,22 @@ FALLBACK_SYNCPATHS[undefined] = [
 FALLBACK_SYNCPATHS["0.8.0"] =
 	FALLBACK_SYNCPATHS["0.8.1"] =
 	FALLBACK_SYNCPATHS["0.8.2"] =
-		[
-			{
-				enabled: true,
-				enforced: true,
-				path: "BepInEx\\plugins\\Corter-ModSync.dll",
-				restartRequired: true,
-				silent: false,
-			},
-			{
-				enabled: true,
-				enforced: true,
-				path: "ModSync.Updater.exe",
-				restartRequired: false,
-				silent: false,
-			},
-		];
+	[
+		{
+			enabled: true,
+			enforced: true,
+			path: "BepInEx\\plugins\\Corter-ModSync.dll",
+			restartRequired: true,
+			silent: false,
+		},
+		{
+			enabled: true,
+			enforced: true,
+			path: "ModSync.Updater.exe",
+			restartRequired: false,
+			silent: false,
+		},
+	];
 
 const FALLBACK_HASHES: Record<string, object> = {};
 
@@ -47,17 +47,17 @@ FALLBACK_HASHES[undefined] = {
 FALLBACK_HASHES["0.8.0"] =
 	FALLBACK_HASHES["0.8.1"] =
 	FALLBACK_HASHES["0.8.2"] =
-		{
+	{
+		"BepInEx\\plugins\\Corter-ModSync.dll": {
 			"BepInEx\\plugins\\Corter-ModSync.dll": {
-				"BepInEx\\plugins\\Corter-ModSync.dll": {
-					crc: 999999999,
-					nosync: false,
-				},
+				crc: 999999999,
+				nosync: false,
 			},
-			"ModSync.Updater.exe": {
-				"ModSync.Updater.exe": { crc: 999999999, nosync: false },
-			},
-		};
+		},
+		"ModSync.Updater.exe": {
+			"ModSync.Updater.exe": { crc: 999999999, nosync: false },
+		},
+	};
 
 export class Router {
 	constructor(
@@ -68,7 +68,7 @@ export class Router {
 		private httpServerHelper: HttpServerHelper,
 		private modImporter: PreSptModLoader,
 		private logger: ILogger,
-	) {}
+	) { }
 
 	/**
 	 * @internal
@@ -197,10 +197,10 @@ export class Router {
 			res.setHeader(
 				"Content-Type",
 				this.httpServerHelper.getMimeText(path.extname(filePath)) ||
-					"text/plain",
+				"text/plain",
 			);
 			res.setHeader("Content-Length", fileStats.size);
-			this.httpFileUtil.sendFile(res, sanitizedPath);
+			return this.httpFileUtil.sendFileAsync(res, sanitizedPath);
 		} catch (e) {
 			throw new HttpError(
 				500,

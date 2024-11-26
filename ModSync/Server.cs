@@ -42,7 +42,7 @@ public class Server(Version pluginVersion)
 
         var retryCount = 0;
 
-        await limiter.WaitAsync(cancellationToken);
+        await limiter.WaitAsync();
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -55,6 +55,7 @@ public class Server(Version pluginVersion)
 
                 await responseStream.CopyToAsync(fileStream, (int)responseStream.Length, cancellationToken);
                 limiter.Release();
+                return;
             }
             catch (Exception e)
             {
@@ -64,6 +65,7 @@ public class Server(Version pluginVersion)
                 if (retryCount < 5)
                 {
                     Plugin.Logger.LogError($"Failed to download '{file}'. Retrying ({retryCount + 1}/5)...");
+                    Plugin.Logger.LogDebug(e);
                     await Task.Delay(500, cancellationToken);
                     retryCount++;
                     continue;

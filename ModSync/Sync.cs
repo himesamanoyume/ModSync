@@ -131,7 +131,7 @@ public static class Sync
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var processedFiles = new HashSet<string>();
-        var limitOpenFiles = new SemaphoreSlim(1024, 1024);
+        var limitOpenFiles = new SemaphoreSlim(1024);
 
         var results = new SyncPathModFiles();
 
