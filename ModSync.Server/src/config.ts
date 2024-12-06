@@ -123,6 +123,8 @@ export class ConfigUtil {
 				"Corter-ModSync: config.jsonc 'exclusions' is not an array. Please verify your config is correct and try again.",
 			);
 
+
+		const uniquePaths = new Set();
 		for (const syncPath of config.syncPaths) {
 			if (typeof syncPath !== "string" && !("path" in syncPath))
 				throw new Error(
@@ -152,6 +154,11 @@ export class ConfigUtil {
 				throw new Error(
 					`Corter-ModSync: SyncPaths must within SPT server root. Invalid path '${syncPath}'`,
 				);
+
+			if (uniquePaths.has(typeof syncPath === "string" ? syncPath : syncPath.path))
+				throw new Error(
+					`Corter-ModSync: SyncPaths must be unique. Duplicate path '${syncPath}'`,
+				)
 		}
 	}
 
