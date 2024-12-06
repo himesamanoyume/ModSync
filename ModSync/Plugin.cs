@@ -89,6 +89,7 @@ public class Plugin : BaseUnityPlugin
                 addedFiles[syncPath.path].Count == 0
                 && updatedFiles[syncPath.path].Count == 0
                 && (!(configDeleteRemovedFiles.Value || syncPath.enforced) || removedFiles[syncPath.path].Count == 0)
+                && createdDirectories[syncPath.path].Count == 0
             )
         );
 
@@ -99,6 +100,7 @@ public class Plugin : BaseUnityPlugin
                 addedFiles[syncPath.path].Count == 0
                 && updatedFiles[syncPath.path].Count == 0
                 && (!(configDeleteRemovedFiles.Value || syncPath.enforced) || removedFiles[syncPath.path].Count == 0)
+                && createdDirectories[syncPath.path].Count == 0
             )
         );
 
@@ -135,22 +137,17 @@ public class Plugin : BaseUnityPlugin
     private void SkipUpdatingMods()
     {
         var enforcedAddedFiles = EnabledSyncPaths
-            .Where(syncPath => syncPath.enforced)
-            .ToDictionary(syncPath => syncPath.path, syncPath => addedFiles[syncPath.path], StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(syncPath => syncPath.path, syncPath => syncPath.enforced ? addedFiles[syncPath.path] : [], StringComparer.OrdinalIgnoreCase);
 
         var enforcedUpdatedFiles = EnabledSyncPaths
-            .Where(syncPath => syncPath.enforced)
-            .ToDictionary(syncPath => syncPath.path, syncPath => updatedFiles[syncPath.path], StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(syncPath => syncPath.path, syncPath => syncPath.enforced ? updatedFiles[syncPath.path] : [], StringComparer.OrdinalIgnoreCase);
 
         var enforcedCreatedDirectories = EnabledSyncPaths
-            .Where(syncPath => syncPath.enforced)
-            .ToDictionary(syncPath => syncPath.path, syncPath => createdDirectories[syncPath.path], StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(syncPath => syncPath.path, syncPath => syncPath.enforced ? createdDirectories[syncPath.path] : [], StringComparer.OrdinalIgnoreCase);
 
-        if (
-            enforcedAddedFiles.Values.Any(files => files.Any())
+        if (enforcedAddedFiles.Values.Any(files => files.Any())
             || enforcedUpdatedFiles.Values.Any(files => files.Any())
-            || enforcedCreatedDirectories.Values.Any(files => files.Any())
-        )
+            || enforcedCreatedDirectories.Values.Any(files => files.Any()))
         {
             Task.Run(() => SyncMods(enforcedAddedFiles, enforcedUpdatedFiles, enforcedCreatedDirectories));
         }
@@ -559,6 +556,7 @@ public class Plugin : BaseUnityPlugin
                 addedFiles[syncPath.path]
                     .Concat(updatedFiles[syncPath.path])
                     .Concat((configDeleteRemovedFiles.Value || syncPath.enforced) ? removedFiles[syncPath.path] : [])
+                    .Concat(createdDirectories[syncPath.path])
             )
             .ToList();
 
