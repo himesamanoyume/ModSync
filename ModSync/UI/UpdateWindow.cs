@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace ModSync.UI;
 
-public class UpdateWindow(string title, string message, string continueText = "CONTINUE", string cancelText = "SKIP UPDATE")
+public class UpdateWindow(string title, string message, string continueText = "继续", string cancelText = "跳过更新")
 {
     private readonly UpdateBox alertBox = new(title, message, continueText, cancelText);
     public bool Active { get; private set; }
@@ -30,7 +30,7 @@ internal class UpdateBox(string title, string message, string continueText, stri
 {
     private readonly UpdateButton acceptButton = new(continueText, Colors.Primary, Colors.PrimaryLight, Colors.Grey, Colors.PrimaryDark);
     private readonly UpdateButton declineButton =
-        new(cancelText, Colors.Secondary, Colors.SecondaryLight, Colors.Grey, Colors.SecondaryDark, "Enforced updates will still be downloaded.");
+        new(cancelText, Colors.Secondary, Colors.SecondaryLight, Colors.Grey, Colors.SecondaryDark, "强制更新仍将被下载.");
 
     private readonly UpdateButtonTooltip updateButtonTooltip = new();
 

@@ -22,7 +22,7 @@ namespace ModSync;
 using SyncPathFileList = Dictionary<string, List<string>>;
 using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
 
-[BepInPlugin("corter.modsync", "Corter ModSync", "0.10.0")]
+[BepInPlugin("corter.modsync", "姫様の夢汉化 Corter ModSync", "0.10.0")]
 public class Plugin : BaseUnityPlugin
 {
     private static readonly string MODSYNC_DIR = Path.Combine(Directory.GetCurrentDirectory(), "ModSync_Data");
@@ -115,11 +115,11 @@ public class Plugin : BaseUnityPlugin
             out createdDirectories
         );
 
-        Logger.LogInfo($"Found {UpdateCount} files to download.");
-        Logger.LogInfo($"- {addedFiles.SelectMany(path => path.Value).Count()} added");
-        Logger.LogInfo($"- {updatedFiles.SelectMany(path => path.Value).Count()} updated");
+        Logger.LogInfo($"发现文件 {UpdateCount} 需要下载.");
+        Logger.LogInfo($"- {addedFiles.SelectMany(path => path.Value).Count()} 已添加");
+        Logger.LogInfo($"- {updatedFiles.SelectMany(path => path.Value).Count()} 已更新");
         if (removedFiles.Count > 0)
-            Logger.LogInfo($"- {removedFiles.SelectMany(path => path.Value).Count()} removed");
+            Logger.LogInfo($"- {removedFiles.SelectMany(path => path.Value).Count()} 已移除");
 
         if (UpdateCount > 0)
         {
@@ -178,7 +178,7 @@ public class Plugin : BaseUnityPlugin
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError("Failed to create empty directories: " + e);
+                    Logger.LogError("创建空目录失败: " + e);
                 }
             }
         }
@@ -191,7 +191,7 @@ public class Plugin : BaseUnityPlugin
             .Select((syncPath) => new KeyValuePair<string, List<string>>(syncPath.path, [.. filesToAdd[syncPath.path], .. filesToUpdate[syncPath.path]]))
             .ToDictionary((kvp) => kvp.Key, (kvp) => kvp.Value);
 
-        Logger.LogInfo($"Starting download of {UpdateCount} files.");
+        Logger.LogInfo($"开始下载 {UpdateCount} 文件.");
         downloadTasks = EnabledSyncPaths
             .SelectMany(syncPath =>
                 filesToDownload.TryGetValue(syncPath.path, out var pathFilesToDownload)
@@ -233,7 +233,7 @@ public class Plugin : BaseUnityPlugin
         downloadTasks.Clear();
         progressWindow.Hide();
 
-        Logger.LogInfo("Download of files finished.");
+        Logger.LogInfo("文件下载完成.");
 
         if (!cts.IsCancellationRequested)
         {
@@ -276,7 +276,7 @@ public class Plugin : BaseUnityPlugin
         if (IsDedicated)
             options.Add("--silent");
 
-        Logger.LogInfo($"Starting Updater with arguments {string.Join(" ", options)} {Process.GetCurrentProcess().Id}");
+        Logger.LogInfo($"带参数启动更新器 {string.Join(" ", options)} {Process.GetCurrentProcess().Id}");
         var updaterStartInfo = new ProcessStartInfo
         {
             FileName = UPDATER_PATH,
@@ -296,30 +296,30 @@ public class Plugin : BaseUnityPlugin
         cts = new CancellationTokenSource();
         if (Directory.Exists(PENDING_UPDATES_DIR) || File.Exists(REMOVED_FILES_PATH))
             Logger.LogWarning(
-                "ModSync found previous update. Updater may have failed, check the 'ModSync_Data/Updater.log' for details. Attempting to continue."
+                "ModSync找到了以前的更新. 更新器可能出错，请查看‘ModSync_Data/update.log’以了解详细信息. 将继续尝试."
             );
 
-        Logger.LogDebug("Fetching server version");
+        Logger.LogDebug("获取服务器版本");
         var versionTask = server.GetModSyncVersion();
         yield return new WaitUntil(() => versionTask.IsCompleted);
         try
         {
             var version = versionTask.Result;
 
-            Logger.LogInfo($"ModSync found server version: {version}");
+            Logger.LogInfo($"ModSync的服务器版本: {version}");
             if (version != Info.Metadata.Version.ToString())
-                Logger.LogWarning($"ModSync server version does not match plugin version. Found server version: {version}. Plugin may not work as expected!");
+                Logger.LogWarning($"ModSync的服务器版本与当前插件版本不匹配. 服务器版本: {version}. 插件可能不会如预期的那样工作!");
         }
         catch (Exception e)
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to error requesting server version. Please ensure the server mod is properly installed and try again."
+                $"请求服务器版本时错误, 无法加载 {Info.Metadata.Name} . 请确保服务器mod已正确安装，然后重试."
             );
             yield break;
         }
 
-        Logger.LogDebug("Fetching sync paths");
+        Logger.LogDebug("获取同步路径");
         var syncPathTask = server.GetModSyncPaths();
         yield return new WaitUntil(() => syncPathTask.IsCompleted);
         try
@@ -330,18 +330,18 @@ public class Plugin : BaseUnityPlugin
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to error requesting sync paths. Please ensure the server mod is properly installed and try again."
+                $"请求同步路径时错误, 无法加载 {Info.Metadata.Name} . 请确保服务器mod已正确安装，然后重试."
             );
             yield break;
         }
 
-        Logger.LogDebug("Processing sync paths");
+        Logger.LogDebug("正在同步路径");
         foreach (var syncPath in syncPaths)
         {
             if (Path.IsPathRooted(syncPath.path))
             {
                 Chainloader.DependencyErrors.Add(
-                    $"Could not load {Info.Metadata.Name} due to invalid sync path. Paths must be relative to SPT server root! Invalid path '{syncPath}'"
+                    $"由于无效的同步路径，无法加载 {Info.Metadata.Name}. 路径必须相对于 SPT 服务器根目录！无效路径 '{syncPath}'"
                 );
                 yield break;
             }
@@ -349,25 +349,25 @@ public class Plugin : BaseUnityPlugin
             if (!Path.GetFullPath(syncPath.path).StartsWith(Directory.GetCurrentDirectory()))
             {
                 Chainloader.DependencyErrors.Add(
-                    $"Could not load {Info.Metadata.Name} due to invalid sync path. Paths must be within SPT server root! Invalid path '{syncPath}'"
+                    $"由于无效的同步路径，无法加载 {Info.Metadata.Name}。路径必须相对于 SPT 服务器根目录！无效路径 '{syncPath}'"
                 );
                 yield break;
             }
         }
 
-        Logger.LogDebug("Running migrator");
+        Logger.LogDebug("运行迁移程序");
         new Migrator(Directory.GetCurrentDirectory()).TryMigrate(Info.Metadata.Version, syncPaths);
 
-        Logger.LogDebug("Loading syncPath configs");
+        Logger.LogDebug("加载 syncPath 配置");
         configSyncPathToggles = syncPaths
             .Select(syncPath => new KeyValuePair<string, ConfigEntry<bool>>(
                 syncPath.path,
                 Config.Bind(
-                    "Synced Paths",
+                    "已同步路径",
                     syncPath.path.Replace("\\", "/"),
                     syncPath.enabled,
                     new ConfigDescription(
-                        $"Should the mod attempt to sync files from {syncPath}",
+                        $"mod应该尝试从{syncPath}同步文件吗？",
                         null,
                         new ConfigurationManagerAttributes { ReadOnly = syncPath.enforced }
                     )
@@ -375,7 +375,7 @@ public class Plugin : BaseUnityPlugin
             ))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        Logger.LogDebug("Loading previous sync data");
+        Logger.LogDebug("加载以前的同步数据");
         try
         {
             previousSync = VFS.Exists(PREVIOUS_SYNC_PATH) ? Json.Deserialize<SyncPathModFiles>(VFS.ReadTextFile(PREVIOUS_SYNC_PATH)) : [];
@@ -384,12 +384,12 @@ public class Plugin : BaseUnityPlugin
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to malformed previous sync data. Please check ModSync_Data/PreviousSync.json for errors or delete it, and try again."
+                $"由于先前的同步数据不正确, 无法加载 {Info.Metadata}. 请检查ModSync_Data/PreviousSync.Json的错误或删除它, 然后再试一次."
             );
             yield break;
         }
 
-        Logger.LogDebug("Loading local exclusions");
+        Logger.LogDebug("加载本地排除项");
         if (IsDedicated && !VFS.Exists(LOCAL_EXCLUSIONS_PATH))
         {
             try
@@ -400,7 +400,7 @@ public class Plugin : BaseUnityPlugin
             {
                 Logger.LogError(e);
                 Chainloader.DependencyErrors.Add(
-                    $"Could not load {Info.Metadata.Name} due to error writing local exclusions file for dedicated client. Please check BepInEx/LogOutput.log for more information."
+                    $"由于为专用客户端编写本地排除文件出错, 无法加载{Info.Metadata}. 更多信息请查看BepInEx/LogOutput.log."
                 );
                 yield break;
             }
@@ -414,12 +414,12 @@ public class Plugin : BaseUnityPlugin
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to malformed local exclusion data. Please check ModSync_Data/Exclusions.json for errors or delete it, and try again."
+                $"由于不正确的本地排除数据, 无法加载{Info.Metadata}. 请检查ModSync_Data/exclements.Json的错误或删除它, 然后再试一次."
             );
             yield break;
         }
 
-        Logger.LogDebug("Fetching exclusions");
+        Logger.LogDebug("获取排除项");
 
         List<string> exclusions;
         var exclusionsTask = server.GetModSyncExclusions();
@@ -432,14 +432,14 @@ public class Plugin : BaseUnityPlugin
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to error requesting exclusions. Please ensure the server mod is properly installed and try again."
+                $"由于请求排除项错误, 无法加载{Info.Metadata}. 请确保服务器mod已正确安装, 然后重试."
             );
             yield break;
         }
 
         yield return new WaitUntil(() => Singleton<CommonUI>.Instantiated);
 
-        Logger.LogDebug("Hashing local files");
+        Logger.LogDebug("本地文件哈希检测");
         var localModFilesTask = Sync.HashLocalFiles(
             Directory.GetCurrentDirectory(),
             EnabledSyncPaths,
@@ -452,7 +452,7 @@ public class Plugin : BaseUnityPlugin
 
         VFS.WriteTextFile(LOCAL_HASHES_PATH, Json.Serialize(localModFiles));
 
-        Logger.LogDebug("Fetching remote file hashes");
+        Logger.LogDebug("获取远端文件哈希值");
         var remoteHashesTask = server.GetRemoteModFileHashes(EnabledSyncPaths);
         yield return new WaitUntil(() => remoteHashesTask.IsCompleted);
         try
@@ -480,11 +480,11 @@ public class Plugin : BaseUnityPlugin
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to error requesting server mod list. Please check the server log and try again."
+                $"由于请求服务器mod列表出错, 无法加载{Info.Metadata}. 请检查服务器日志并重试."
             );
         }
 
-        Logger.LogDebug("Comparing file hashes");
+        Logger.LogDebug("对比文件哈希值");
         try
         {
             AnalyzeModFiles(localModFiles);
@@ -493,20 +493,20 @@ public class Plugin : BaseUnityPlugin
         {
             Logger.LogError(e);
             Chainloader.DependencyErrors.Add(
-                $"Could not load {Info.Metadata.Name} due to error hashing local mods. Please ensure none of the files are open and try again."
+                $"由于本地mods哈希值错误,无法加载 {Info.Metadata.Name}. 请确保没有文件正在运行中，然后再试一次."
             );
         }
     }
 
-    private readonly UpdateWindow updateWindow = new("Installed mods do not match server", "Would you like to update?");
-    private readonly ProgressWindow progressWindow = new("Downloading Updates...", "Your game will need to be restarted\nafter update completes.");
-    private readonly AlertWindow restartWindow = new(new Vector2(480f, 200f), "Update Complete.", "Please restart your game to continue.");
+    private readonly UpdateWindow updateWindow = new("已安装的mod与服务器不匹配", "你是否想要进行更新?");
+    private readonly ProgressWindow progressWindow = new("下载更新...", "你的游戏需要重启\n在更新完成之后.");
+    private readonly AlertWindow restartWindow = new(new Vector2(480f, 200f), "更新完成.", "请重启游戏后继续.");
     private readonly AlertWindow downloadErrorWindow =
         new(
             new Vector2(640f, 240f),
-            "Download failed!",
-            "There was an error updating mod files.\nPlease check BepInEx/LogOutput.log for more information.",
-            "QUIT"
+            "下载失败!",
+            "更新mod文件出错. 请查看BepInEx/LogOutput.log了解更多信息.",
+            "退出"
         );
 
     private void Awake()
@@ -515,14 +515,14 @@ public class Plugin : BaseUnityPlugin
             "modsync",
             () =>
             {
-                ConsoleScreen.Log("Checking for updates.");
+                ConsoleScreen.Log("检查更新.");
                 StartCoroutine(StartPlugin());
             }
         );
 
         server = new Server(Info.Metadata.Version);
 
-        configDeleteRemovedFiles = Config.Bind("General", "Delete Removed Files", true, "Should the mod delete files that have been removed from the server?");
+        configDeleteRemovedFiles = Config.Bind("全局", "删除被移除的文件", true, "是否应该删除被服务器移除掉后已不再需要的本地文件?");
     }
 
     private List<string> _optional;
@@ -531,10 +531,10 @@ public class Plugin : BaseUnityPlugin
             .Where(syncPath => !syncPath.enforced)
             .SelectMany(syncPath =>
                 addedFiles[syncPath.path]
-                    .Select(file => $"ADDED {file}")
-                    .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
+                    .Select(file => $"已添加 {file}")
+                    .Concat(updatedFiles[syncPath.path].Select(file => $"已更新 {file}"))
                     .Concat(configDeleteRemovedFiles.Value || syncPath.enforced ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
-                    .Concat(createdDirectories[syncPath.path].Select(file => $@"CREATED {file}\"))
+                    .Concat(createdDirectories[syncPath.path].Select(file => $@"已更新 {file}\"))
             )
             .ToList();
 
@@ -544,10 +544,10 @@ public class Plugin : BaseUnityPlugin
             .Where(syncPath => syncPath.enforced)
             .SelectMany(syncPath =>
                 addedFiles[syncPath.path]
-                    .Select(file => $"ADDED {file}")
-                    .Concat(updatedFiles[syncPath.path].Select(file => $"UPDATED {file}"))
-                    .Concat(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"REMOVED {file}") : [])
-                    .Concat(createdDirectories[syncPath.path].Select(file => $@"CREATED {file}\"))
+                    .Select(file => $"已添加 {file}")
+                    .Concat(updatedFiles[syncPath.path].Select(file => $"已更新 {file}"))
+                    .Concat(configDeleteRemovedFiles.Value ? removedFiles[syncPath.path].Select(file => $"已移除 {file}") : [])
+                    .Concat(createdDirectories[syncPath.path].Select(file => $@"已更新 {file}\"))
             )
             .ToList();
 
@@ -578,7 +578,7 @@ public class Plugin : BaseUnityPlugin
             updateWindow.Draw(
                 (optional.Count != 0 ? string.Join("\n", optional) : "")
                     + (optional.Count != 0 && required.Count != 0 ? "\n\n" : "")
-                    + (required.Count != 0 ? "[Enforced]\n" + string.Join("\n", required) : ""),
+                    + (required.Count != 0 ? "[执行]\n" + string.Join("\n", required) : ""),
                 () => Task.Run(() => SyncMods(addedFiles, updatedFiles, createdDirectories)),
                 required.Count != 0 && optional.Count == 0 ? null : SkipUpdatingMods
             );

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace ModSync.UI;
 
-public class AlertWindow(Vector2 size, string title, string message, string buttonText = "EXIT GAME")
+public class AlertWindow(Vector2 size, string title, string message, string buttonText = "退出游戏")
 {
     private readonly InfoBox infoBox = new(title, message);
     private readonly AlertButton alertButton = new(buttonText);
