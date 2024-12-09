@@ -10,74 +10,74 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="PhysicsModule">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
     <Reference Include="0Harmony">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\core\0Harmony.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="SPT.Common">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\spt\spt-common.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\spt\spt-common.dll</HintPath>
     </Reference>
     <Reference Include="SPT.Custom">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\spt\spt-custom.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\spt\spt-custom.dll</HintPath>
     </Reference>
     <Reference Include="SPT.Reflection">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="bsg.console.core, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\bsg.console.core.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\bsg.console.core.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\core\BepInEx.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="Comfort">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Comfort.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Comfort.dll</HintPath>
     </Reference>
     <Reference Include="Comfort.Unity, Version=1.0.0.4, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Comfort.Unity.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Comfort.Unity.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Sirenix.Serialization, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Sirenix.Serialization.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Sirenix.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http" />
     <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\EscapeFromTarkov_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -90,7 +90,7 @@
   <Import Project="..\ModSync.Utility\ModSync.Utility.projitems" Label="Shared" />
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(OS)' == 'Windows_NT' ">
-    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\CrackedGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\$(TargetFileName)&quot;" />
-    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\CrackedGames\SPT3.10.X\SPT-3.10.1\BepInEx\plugins\$(TargetFileName)&quot;" />
+    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\$(TargetFileName)&quot;" />
+    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\OtherGames\SPT3.10.X\SPT-3.10.1\BepInEx\plugins\$(TargetFileName)&quot;" />
   </Target>
 </Project>
