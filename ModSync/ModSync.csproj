@@ -90,7 +90,7 @@
   <Import Project="..\ModSync.Utility\ModSync.Utility.projitems" Label="Shared" />
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(OS)' == 'Windows_NT' ">
-    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3\BepInEx\plugins\$(TargetFileName)&quot;" />
+    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\OtherGames\SPT3.10.X\MiyakoTarkov v1.3 - Dev\BepInEx\plugins\$(TargetFileName)&quot;&#xD;&#xA;copy &quot;$(TargetPath)&quot; &quot;D:\OtherGames\SPT3.10.X\SPT-3.10.1\BepInEx\plugins\$(TargetFileName)&quot;" />
     <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\OtherGames\SPT3.10.X\SPT-3.10.1\BepInEx\plugins\$(TargetFileName)&quot;" />
   </Target>
 </Project>

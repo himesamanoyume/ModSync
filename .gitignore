@@ -10,3 +10,4 @@ coverage
 **/*~
 .vscode
 .vs/
+package-lock.json
