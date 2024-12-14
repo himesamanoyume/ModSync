@@ -27,6 +27,12 @@ sed(
 
 pushd("-q", "../ModSync");
 sed("-i", `"${currentVersion}"`, `"${newVersion}"`, "Plugin.cs");
+sed(
+	"-i",
+	`"${currentVersion}"`,
+	`"${newVersion}"`,
+	"Properties/AssemblyInfo.cs",
+);
 popd("-q");
 
 pushd("-q", "../ModSync.Updater");
@@ -38,11 +44,11 @@ sed(
 );
 popd("-q");
 
-pushd("-q", "../ModSync.Tests");
+pushd("-q", "../ModSync.MetroHash");
 sed(
 	"-i",
-	`"${currentVersion}"`,
-	`"${newVersion}"`,
-	"Properties/AssemblyInfo.cs",
+	`version = "${currentVersion}"`,
+	`version = "${newVersion}"`,
+	"Cargo.toml",
 );
 popd("-q");
