@@ -15,7 +15,7 @@ public class AddedFilesTests
             {
                 @"BepInEx\plugins",
                 new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -27,7 +27,7 @@ public class AddedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
@@ -43,15 +43,15 @@ public class AddedFilesTests
             {
                 @"BepInEx\plugins",
                 new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
-            }
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
+            },
         };
 
         var addedFiles = Sync.GetAddedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles);
@@ -71,7 +71,7 @@ public class UpdatedFilesTests
             {
                 @"BepInEx\plugins",
                 new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -83,15 +83,15 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
-            }
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
+            },
         };
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -111,7 +111,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -123,7 +123,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                 }
-            }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -135,7 +135,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -155,7 +155,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -167,7 +167,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -179,7 +179,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -199,7 +199,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -212,7 +212,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                     { @"BepInEx\plugins\New-Mod.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>();
@@ -238,7 +238,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -250,7 +250,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                 }
-            }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -262,7 +262,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -282,7 +282,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("2345678") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -294,7 +294,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("2345678") },
                 }
-            }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -306,7 +306,7 @@ public class UpdatedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var updatedFiles = Sync.GetUpdatedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -335,15 +335,15 @@ public class RemovedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
-            }
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -355,7 +355,7 @@ public class RemovedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var removedFiles = Sync.GetRemovedFiles([new SyncPath(@"BepInEx\plugins")], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -376,15 +376,15 @@ public class RemovedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567", true) },
                 }
-            }
+            },
         };
 
         var remoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
         {
             {
                 @"BepInEx\plugins",
-                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") }, }
-            }
+                new Dictionary<string, ModFile> { { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") } }
+            },
         };
 
         var previousRemoteModFiles = new Dictionary<string, Dictionary<string, ModFile>>
@@ -396,7 +396,7 @@ public class RemovedFilesTests
                     { @"BepInEx\plugins\SAIN\SAIN.dll", new ModFile("1234567") },
                     { @"BepInEx\plugins\Corter-ModSync.dll", new ModFile("1234567") },
                 }
-            }
+            },
         };
 
         var removedFiles = Sync.GetRemovedFiles([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles, previousRemoteModFiles);
@@ -424,7 +424,7 @@ public class CreatedDirectoriesTests
                 {
                     { @"BepInEx\plugins\ModThatDoesntErrorCheckFolders\SuperImportantEmptyFolder", new ModFile("1234567", directory: true) },
                 }
-            }
+            },
         };
 
         var createdDirectories = Sync.GetCreatedDirectories([new SyncPath(@"BepInEx\plugins", enforced: true)], localModFiles, remoteModFiles);
@@ -449,20 +449,19 @@ public class HashLocalFilesTests
         Glob.CreateNoEnd("plugins/OtherMod/subdir"),
     ];
 
-    private readonly Dictionary<string, string> fileContents =
-        new()
-        {
-            { @"plugins\file1.dll", "Test content" },
-            { @"plugins\file2.dll", "Test content 2" },
-            { @"plugins\file2.dll.nosync", "" },
-            { @"plugins\file3.dll", "Test content 3" },
-            { @"plugins\file3.dll.nosync.txt", "" },
-            { @"plugins\ModName\mod_name.dll", "Test content 4" },
-            { @"plugins\ModName\.nosync", "" },
-            { @"plugins\OtherMod\other_mod.dll", "Test content 5" },
-            { @"plugins\OtherMod\subdir\image.png", "Test Image" },
-            { @"plugins\OtherMod\subdir\.nosync", "" }
-        };
+    private readonly Dictionary<string, string> fileContents = new()
+    {
+        { @"plugins\file1.dll", "Test content" },
+        { @"plugins\file2.dll", "Test content 2" },
+        { @"plugins\file2.dll.nosync", "" },
+        { @"plugins\file3.dll", "Test content 3" },
+        { @"plugins\file3.dll.nosync.txt", "" },
+        { @"plugins\ModName\mod_name.dll", "Test content 4" },
+        { @"plugins\ModName\.nosync", "" },
+        { @"plugins\OtherMod\other_mod.dll", "Test content 5" },
+        { @"plugins\OtherMod\subdir\image.png", "Test Image" },
+        { @"plugins\OtherMod\subdir\.nosync", "" },
+    };
 
     private string testDirectory;
 
@@ -562,20 +561,19 @@ public class HashLocalFilesTests
 [TestFixture]
 public class CreateModFileTest
 {
-    private readonly Dictionary<string, string> fileContents =
-        new()
-        {
-            { "file1.dll", "" },
-            { "file2.dll", "" },
-            { "file2.dll.nosync", "" },
-            { "file3.dll", "Test content 3" },
-            { "file3.dll.nosync.txt", "" },
-            { @"ModName\mod_name.dll", "Test content 4" },
-            { @"ModName\.nosync", "" },
-            { @"OtherMod\other_mod.dll", "Test content 5" },
-            { @"OtherMod\subdir\image.png", "Test Image" },
-            { @"OtherMod\subdir\.nosync", "" }
-        };
+    private readonly Dictionary<string, string> fileContents = new()
+    {
+        { "file1.dll", "" },
+        { "file2.dll", "" },
+        { "file2.dll.nosync", "" },
+        { "file3.dll", "Test content 3" },
+        { "file3.dll.nosync.txt", "" },
+        { @"ModName\mod_name.dll", "Test content 4" },
+        { @"ModName\.nosync", "" },
+        { @"OtherMod\other_mod.dll", "Test content 5" },
+        { @"OtherMod\subdir\image.png", "Test Image" },
+        { @"OtherMod\subdir\.nosync", "" },
+    };
 
     private string testDirectory;
     private readonly SemaphoreSlim limiter = new(1024);
@@ -636,19 +634,18 @@ public class CreateModFileTest
 [TestFixture]
 public class IsExcludedTest
 {
-    private readonly Dictionary<string, string> fileContents =
-        new()
-        {
-            { "file1.dll", "Test content" },
-            { "file2.dll", "Test content 2" },
-            { "file3.dll", "Test content 3" },
-            { @"ModName\mod_name.dll", "Test content 4" },
-            { @"ModName\.nosync", "" },
-            { @"ModName\subdir\image.png", "Test Image 1" },
-            { @"OtherMod\other_mod.dll", "Test content 5" },
-            { @"OtherMod\subdir\image.png", "Test Image 2" },
-            { @"OtherMod\subdir\.nosync", "" }
-        };
+    private readonly Dictionary<string, string> fileContents = new()
+    {
+        { "file1.dll", "Test content" },
+        { "file2.dll", "Test content 2" },
+        { "file3.dll", "Test content 3" },
+        { @"ModName\mod_name.dll", "Test content 4" },
+        { @"ModName\.nosync", "" },
+        { @"ModName\subdir\image.png", "Test Image 1" },
+        { @"OtherMod\other_mod.dll", "Test content 5" },
+        { @"OtherMod\subdir\image.png", "Test Image 2" },
+        { @"OtherMod\subdir\.nosync", "" },
+    };
 
     private readonly List<Regex> exclusions =
     [

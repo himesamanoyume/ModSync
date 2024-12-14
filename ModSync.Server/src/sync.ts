@@ -46,7 +46,11 @@ export class SyncUtil {
 			if (this.config.isExcluded(subDir)) continue;
 
 			const subFiles = await this.getFilesInDir(baseDir, subDir);
-			if (!subFiles.length) files.push(subDir);
+			if (
+				this.vfs.getFiles(subDir).length === 0 &&
+				this.vfs.getDirs(subDir).length === 0
+			)
+				files.push(subDir);
 
 			files.push(...subFiles);
 		}
