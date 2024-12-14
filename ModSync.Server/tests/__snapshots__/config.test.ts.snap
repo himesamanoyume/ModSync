@@ -70,3 +70,5 @@ exports[`ConfigUtil > should reject on non-array exclusions 1`] = `[Error: Corte
 exports[`ConfigUtil > should reject paths outside of SPT root 1`] = `[Error: Corter-ModSync: SyncPaths must within SPT server root. Invalid path '../../etc/shadow']`;
 
 exports[`ConfigUtil > should reject syncPath object without path 1`] = `[Error: Corter-ModSync: config.jsonc 'syncPaths' is missing 'path'. Please verify your config is correct and try again.]`;
+
+exports[`ConfigUtil > should warn on explicitly excluded syncPaths 1`] = `[Error: Corter-ModSync: 'plugins' has been added as a sync path and is also in the 'exclusions' array. This probably isn't doing what you want. If you no longer want to sync this path, remove it from the 'exclusions' and 'syncPaths' arrays.]`;

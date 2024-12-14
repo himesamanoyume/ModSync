@@ -71,7 +71,7 @@ describe("ConfigUtil", () => {
 			process.cwd(),
 		);
 
-		const config = await new ConfigUtil(
+		await new ConfigUtil(
 			new VFS() as IVFS,
 			new JsonUtil() as IJsonUtil,
 			new PreSptModLoader() as IPreSptModLoader,
@@ -260,7 +260,9 @@ describe("ConfigUtil", () => {
 			process.cwd(),
 		);
 
-		const logger = mock<ILogger>();
+		const logger = {
+			warning: vi.fn((...args) => { }),
+		} as unknown as ILogger;
 
 		const configUtil = new ConfigUtil(
 			new VFS() as IVFS,
@@ -269,8 +271,7 @@ describe("ConfigUtil", () => {
 			logger,
 		);
 
-		expect(configUtil.load()).resolves.toMatchSnapshot();
-		expect(logger.warning).toHaveBeenCalledWith(`Corter-ModSync: You've manually excluded the sync path 'plugins'. This probably isn't doing what you want. If you no longer want to sync this path, remove it from the 'exclusions' and 'syncPaths' arrays.`);
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot()
 	})
 
 	it("should reject on non-array exclusions", () => {
