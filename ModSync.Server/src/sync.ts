@@ -1,11 +1,10 @@
-﻿import type { VFS } from "@spt/utils/VFS";
-import path from "node:path";
-import { hashFile } from "./utility/imoHash";
+﻿import path from "node:path";
+import type { ILogger } from "@spt/models/spt/utils/ILogger";
+import type { VFS } from "@spt/utils/VFS";
 import type { Config, SyncPath } from "./config";
+import { hashFile } from "./utility/imoHash";
 import { HttpError, winPath } from "./utility/misc";
 import { Semaphore } from "./utility/semaphore";
-import type { ILogger } from "@spt/models/spt/utils/ILogger";
-import type { } from "node:fs";
 
 type ModFile = {
 	hash: string;
@@ -19,7 +18,7 @@ export class SyncUtil {
 		private vfs: VFS,
 		private config: Config,
 		private logger: ILogger,
-	) { }
+	) {}
 
 	private async getFilesInDir(baseDir: string, dir: string): Promise<string[]> {
 		if (!this.vfs.exists(dir)) {
@@ -47,12 +46,17 @@ export class SyncUtil {
 			if (this.config.isExcluded(subDir)) continue;
 
 			const subFiles = await this.getFilesInDir(baseDir, subDir);
-			if (!subFiles.length) files.push(subDir)
+			if (!subFiles.length) files.push(subDir);
 
 			files.push(...subFiles);
 		}
 
-		if (stats.isDirectory() && files.length === 0) files.push(dir);
+		if (
+			stats.isDirectory() &&
+			this.vfs.getFiles(dir).length === 0 &&
+			this.vfs.getDirs(dir).length === 0
+		)
+			files.push(dir);
 
 		return files;
 	}
@@ -60,7 +64,7 @@ export class SyncUtil {
 	private async buildModFile(
 		file: string,
 		// biome-ignore lint/correctness/noEmptyPattern: <explanation>
-		{ }: Required<SyncPath>,
+		{}: Required<SyncPath>,
 	): Promise<ModFile> {
 		const stats = await this.vfs.statPromisify(file);
 		if (stats.isDirectory()) return { hash: "", directory: true };
@@ -77,8 +81,15 @@ export class SyncUtil {
 					directory: false,
 				};
 			} catch (e) {
-				if (e instanceof Error && 'code' in e && e.code === "EBUSY" && retryCount < 5) {
-					this.logger.error(`Error reading '${file}'. Retrying (${retryCount}/5)...`);
+				if (
+					e instanceof Error &&
+					"code" in e &&
+					e.code === "EBUSY" &&
+					retryCount < 5
+				) {
+					this.logger.error(
+						`Error reading '${file}'. Retrying (${retryCount}/5)...`,
+					);
 					await new Promise((resolve) => setTimeout(resolve, 500));
 					retryCount++;
 					continue;
@@ -86,7 +97,10 @@ export class SyncUtil {
 
 				this.logger.error(`Error reading '${file}'. Exiting...`);
 				this.logger.error(`${e}`);
-				throw new HttpError(500, `Corter-ModSync: Error reading '${file}'\n${e}`);
+				throw new HttpError(
+					500,
+					`Corter-ModSync: Error reading '${file}'\n${e}`,
+				);
 			}
 		}
 	}
@@ -113,7 +127,9 @@ export class SyncUtil {
 			result[winPath(syncPath.path)] = filesResult;
 		}
 
-		this.logger.info(`Corter-ModSync: Hashed ${processedFiles.size} files in ${performance.now() - startTime}ms`);
+		this.logger.info(
+			`Corter-ModSync: Hashed ${processedFiles.size} files in ${performance.now() - startTime}ms`,
+		);
 
 		return result;
 	}
