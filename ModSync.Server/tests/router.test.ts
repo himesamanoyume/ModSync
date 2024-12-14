@@ -35,20 +35,6 @@ describe("router", async () => {
 				silent: false,
 				restartRequired: true,
 			},
-			{
-				path: "user/mods",
-				enabled: true,
-				enforced: false,
-				silent: false,
-				restartRequired: false,
-			},
-			{
-				path: "user/cache",
-				enabled: false,
-				enforced: false,
-				silent: false,
-				restartRequired: true,
-			},
 		],
 		[
 			"**/*.nosync",

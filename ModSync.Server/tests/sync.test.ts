@@ -106,13 +106,6 @@ describe("syncTests", async () => {
 						silent: false,
 						restartRequired: true,
 					},
-					{
-						path: "user/mods",
-						enabled: true,
-						enforced: false,
-						silent: false,
-						restartRequired: false,
-					},
 				],
 				config.exclusions,
 			);

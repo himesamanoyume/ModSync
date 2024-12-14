@@ -23,12 +23,7 @@ const DEFAULT_CONFIG = `{
 	"syncPaths": [
 		"BepInEx/plugins",
 		"BepInEx/patchers",
-		"BepInEx/config",
-		{
-			"enabled": false,
-			"path": "user/mods",
-			"restartRequired": false
-		}
+		"BepInEx/config"
 	],
 	"exclusions": [
 		// SPT Installer
