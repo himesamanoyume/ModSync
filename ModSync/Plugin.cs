@@ -22,7 +22,7 @@ namespace ModSync;
 using SyncPathFileList = Dictionary<string, List<string>>;
 using SyncPathModFiles = Dictionary<string, Dictionary<string, ModFile>>;
 
-[BepInPlugin("corter.modsync", "姫様の夢汉化 Corter ModSync", "0.10.0")]
+[BepInPlugin("corter.modsync", "姫様の夢汉化 Corter ModSync", "0.10.1")]
 public class Plugin : BaseUnityPlugin
 {
     private static readonly string MODSYNC_DIR = Path.Combine(Directory.GetCurrentDirectory(), "ModSync_Data");
@@ -305,7 +305,7 @@ public class Plugin : BaseUnityPlugin
 
             Logger.LogInfo($"ModSync的服务器版本: {version}");
             if (version != Info.Metadata.Version.ToString())
-                Logger.LogWarning($"ModSync的服务器版本与当前插件版本不匹配. 服务器版本: {version}. 插件可能不会如预期的那样工作!");
+                Logger.LogWarning($"ModSync的服务器版本与当前插件版本不匹配. 服务器版本: {version},当前版本: {Info.Metadata.Version}. 插件可能不会如预期的那样工作!");
         }
         catch (Exception e)
         {
