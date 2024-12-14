@@ -244,6 +244,35 @@ describe("ConfigUtil", () => {
 		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
 	});
 
+	it("should warn on explicitly excluded syncPaths", () => {
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
+					"syncPaths": [
+						"plugins"
+					],
+					// Exclusions for commonly used SPT mods
+					"exclusions": [
+						"plugins"
+					]
+				}`,
+			},
+			process.cwd(),
+		);
+
+		const logger = mock<ILogger>();
+
+		const configUtil = new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			logger,
+		);
+
+		expect(configUtil.load()).resolves.toMatchSnapshot();
+		expect(logger.warning).toHaveBeenCalledWith(`Corter-ModSync: You've manually excluded the sync path 'plugins'. This probably isn't doing what you want. If you no longer want to sync this path, remove it from the 'exclusions' and 'syncPaths' arrays.`);
+	})
+
 	it("should reject on non-array exclusions", () => {
 		vol.fromNestedJSON(
 			{
