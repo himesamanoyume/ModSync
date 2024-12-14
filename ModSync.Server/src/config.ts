@@ -50,6 +50,8 @@ const DEFAULT_CONFIG = `{
 		// ADD MISSING QUEST WEAPON REQUIREMENTS
 		"user/mods/zz_guiltyman-addmissingquestweaponrequirements/log.log",
 		"user/mods/zz_guiltyman-addmissingquestweaponrequirements/user/logs",
+		// Acid's Progressive Bot System
+		"user/mods/acidphantasm-progressivebotsystem/logs",
 		// Corter ModSync
 		"BepInEx/patchers/Corter-ModSync-Patcher.dll",
 		"**/*.nosync",
@@ -154,6 +156,10 @@ export class ConfigUtil {
 				throw new Error(
 					`Corter-ModSync: SyncPaths must be unique. Duplicate path '${syncPath}'`,
 				)
+
+			if (config.exclusions.includes(typeof syncPath === "string" ? syncPath : syncPath.path))
+				throw new Error(
+					`Corter-ModSync: '${syncPath}' has been added as a sync path and is also in the 'exclusions' array. This probably isn't doing what you want. If you no longer want to sync this path, remove it from the 'exclusions' and 'syncPaths' arrays.`)
 		}
 	}
 

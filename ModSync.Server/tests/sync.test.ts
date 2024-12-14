@@ -231,6 +231,22 @@ describe("syncTests", async () => {
 			expect(hashes).toMatchSnapshot();
 		});
 
+		it("should correctly ignore folders with all files excluded", async () => {
+			const newConfig = new Config(
+				config.syncPaths,
+				[
+					...config.exclusions,
+					"plugins/OtherMod/*",
+				]
+			);
+
+			const syncUtil = new SyncUtil(vfs as IVFS, newConfig, logger);
+
+			const hashes = await syncUtil.hashModFiles(newConfig.syncPaths);
+
+			expect(hashes).toMatchSnapshot();
+		});
+
 		it("Should correctly hash a single file", async () => {
 			const hashes = await syncUtil.hashModFiles([
 				{

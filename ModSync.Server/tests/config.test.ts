@@ -71,7 +71,7 @@ describe("ConfigUtil", () => {
 			process.cwd(),
 		);
 
-		const config = await new ConfigUtil(
+		await new ConfigUtil(
 			new VFS() as IVFS,
 			new JsonUtil() as IJsonUtil,
 			new PreSptModLoader() as IPreSptModLoader,
@@ -243,6 +243,36 @@ describe("ConfigUtil", () => {
 
 		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot();
 	});
+
+	it("should warn on explicitly excluded syncPaths", () => {
+		vol.fromNestedJSON(
+			{
+				"config.jsonc": `{
+					"syncPaths": [
+						"plugins"
+					],
+					// Exclusions for commonly used SPT mods
+					"exclusions": [
+						"plugins"
+					]
+				}`,
+			},
+			process.cwd(),
+		);
+
+		const logger = {
+			warning: vi.fn((...args) => { }),
+		} as unknown as ILogger;
+
+		const configUtil = new ConfigUtil(
+			new VFS() as IVFS,
+			new JsonUtil() as IJsonUtil,
+			new PreSptModLoader() as IPreSptModLoader,
+			logger,
+		);
+
+		expect(configUtil.load()).rejects.toThrowErrorMatchingSnapshot()
+	})
 
 	it("should reject on non-array exclusions", () => {
 		vol.fromNestedJSON(

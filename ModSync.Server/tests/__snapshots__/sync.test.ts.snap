@@ -107,6 +107,17 @@ exports[`syncTests > hashModFiles > should correctly hash multiple folders 1`] =
 }
 `;
 
+exports[`syncTests > hashModFiles > should correctly ignore folders with all files excluded 1`] = `
+{
+  "plugins": {
+    "plugins\\file1.dll": {
+      "directory": false,
+      "hash": "0ce304b7ff04260d67adfdee0af9dd3b",
+    },
+  },
+}
+`;
+
 exports[`syncTests > hashModFiles > should correctly include empty folders 1`] = `
 {
   "plugins": {
